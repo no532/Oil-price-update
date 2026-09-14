@@ -5,8 +5,10 @@ from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
 
 # ================= 配置 =================
-CALENDAR_FILE = r"C:\Users\31007384\Desktop\新建文件夹\油价调整日历.xlsx"
-HISTORY_FILE  = r"C:\Users\31007384\Desktop\新建文件夹\各省历史油价数据.xlsx"
+import os
+BASE = os.path.dirname(os.path.abspath(__file__))
+CALENDAR_FILE = os.path.join(BASE, "油价调整日历.xlsx")
+HISTORY_FILE  = os.path.join(BASE, "各省历史油价数据.xlsx")
 API_URL = "https://v2.xxapi.cn/api/oilPrice"
 
 # 全国 31 个省级行政区（不含港澳台）
