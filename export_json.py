@@ -30,9 +30,12 @@ def to_float_or_none(v):
     if s in NULL_TOKENS:
         return None
     try:
-        return float(v)
+        f = float(v)
     except (ValueError, TypeError):
         return None
+    if f == 0:        # ★ 新增：0 视为无数据
+        return None
+    return f
 
 
 def get_next_adjust():
