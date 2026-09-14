@@ -381,13 +381,16 @@ function renderChart() {
   const prov = document.getElementById("province").value;
   let xAxisData = [], series = [], title = "", rangeText = "";
 
+  // 数据清洗：<3 的值当作 null（防止 0 或脏数据把图拉低）
+  const clean = v => (v == null || v < 3) ? null : v;
+
   if (prov) {
     const rows = (DB[prov] || []).slice().reverse();
     xAxisData = rows.map(r => r.date);
     series = FUELS.map(f => ({
       name: f, type: "line", smooth: true, symbol: "circle", symbolSize: 6,
       itemStyle: { color: COLORS[f] }, lineStyle: { width: 2 },
-      data: rows.map(r => r[f])
+      data: rows.map(r => clean(r[f]))
     }));
     title = `${prov}油价走势图`;
     if (rows.length) rangeText = `区间：${rows[0].date} ~ ${rows[rows.length-1].date} · 共 ${rows.length} 期`;
@@ -397,8 +400,9 @@ function renderChart() {
       for (const r of DB[p]) {
         if (!byDate[r.date]) byDate[r.date] = { sum: {}, cnt: {} };
         FUELS.forEach(f => {
-          if (r[f] != null) {
-            byDate[r.date].sum[f] = (byDate[r.date].sum[f] || 0) + r[f];
+          const v = clean(r[f]);
+          if (v != null) {
+            byDate[r.date].sum[f] = (byDate[r.date].sum[f] || 0) + v;
             byDate[r.date].cnt[f] = (byDate[r.date].cnt[f] || 0) + 1;
           }
         });
@@ -423,12 +427,23 @@ function renderChart() {
 
   if (!chart) chart = echarts.init(document.getElementById("chart"));
   chart.setOption({
-    tooltip: { trigger: "axis", valueFormatter: v => v == null ? "—" : v.toFixed(2) },
+    tooltip: {
+      trigger: "axis",
+      valueFormatter: v => (v == null ? "—" : v.toFixed(2))
+    },
     legend: { top: 0, data: FUELS },
     grid: { left: 55, right: 30, top: 50, bottom: 80 },
-    xAxis: { type: "category", data: xAxisData, axisLabel: { rotate: 45, fontSize: 11 } },
-    yAxis: { type: "value", name: "价格（元/升）", scale: true,
-             axisLabel: { formatter: v => v.toFixed(2) } },
+    xAxis: {
+      type: "category", data: xAxisData,
+      axisLabel: { rotate: 45, fontSize: 11 }
+    },
+    yAxis: {
+      type: "value",
+      name: "价格（元/升）",
+      min: 5,          // ★ 下限锁定 5 元
+      max: 12,         // ★ 上限锁定 12 元
+      axisLabel: { formatter: v => v.toFixed(2) }
+    },
     series
   }, true);
   chart.resize();
