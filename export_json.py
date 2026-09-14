@@ -3,10 +3,12 @@ import json
 import re
 from datetime import date as _date
 
-HISTORY_FILE  = r"C:\Users\31007384\Desktop\新建文件夹\各省历史油价数据.xlsx"
-CALENDAR_FILE = r"C:\Users\31007384\Desktop\新建文件夹\油价调整日历.xlsx"
-OUTPUT_JSON   = r"C:\Users\31007384\Desktop\新建文件夹\data.json"
-HTML_FILE     = r"C:\Users\31007384\Desktop\新建文件夹\index.html"
+import os
+BASE = os.path.dirname(os.path.abspath(__file__))
+HISTORY_FILE  = os.path.join(BASE, "各省历史油价数据.xlsx")
+CALENDAR_FILE = os.path.join(BASE, "油价调整日历.xlsx")
+OUTPUT_JSON   = os.path.join(BASE, "data.json")
+HTML_FILE     = os.path.join(BASE, "index.html")
 
 # 与 测试.py 保持一致：31 个省级行政区
 PROVINCES = [
