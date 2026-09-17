@@ -57,31 +57,22 @@
     background:linear-gradient(180deg,#f0f7ff 0%,#e6f0fb 100%);
     border-color:#d0e3f5;
   }
-  .ov-item.warn {
-    background:linear-gradient(180deg,#fff7e6 0%,#fffbf0 100%);
-    border-color:#fde68a;
-  }
   .ov-label {
     font-size:13px; color:#a35a5a; margin-bottom:6px;
     display:flex; align-items:center; gap:6px;
   }
   .ov-item.alt .ov-label { color:#4d7dab; }
-  .ov-item.warn .ov-label { color:#b45309; }
   .ov-label .dot { width:6px; height:6px; border-radius:50%; }
   .ov-label .dot.up   { background:#e74c3c; }
   .ov-label .dot.down { background:#27ae60; }
   .ov-label .dot.blue { background:#409eff; }
-  .ov-label .dot.orange { background:#faad14; }
   .ov-value {
     font-size:28px; font-weight:700; color:#3a1f1f;
     font-variant-numeric:tabular-nums; line-height:1.1;
   }
   .ov-item.alt .ov-value { color:#1f3a52; }
-  .ov-item.warn .ov-value { color:#7a5200; }
-  .ov-value .unit { font-size:14px; font-weight:400; color:#8492a6; margin-left:2px; }
   .ov-region { font-size:13px; color:#a35a5a; margin-top:6px; }
   .ov-item.alt .ov-region { color:#4d7dab; }
-  .ov-item.warn .ov-region { color:#b45309; }
   .ov-change { font-size:13px; margin-top:6px; font-weight:600; }
   .ov-change.up   { color:#e74c3c; }
   .ov-change.down { color:#27ae60; }
@@ -107,6 +98,13 @@
   .ticker-diff.up   { color:#e74c3c; }
   .ticker-diff.down { color:#27ae60; }
   .ticker-diff.flat { color:#b0b8c1; }
+  .ticker-vol {
+    font-size:11px; margin-top:2px;
+    font-variant-numeric:tabular-nums;
+  }
+  .ticker-vol.up   { color:#e74c3c; }
+  .ticker-vol.down { color:#27ae60; }
+  .ticker-vol.flat { color:#b0b8c1; }
   .ov-time { font-size:12px; color:#b0b8c1; margin-top:14px; }
 
   @media (max-width:900px) { .overview-grid { grid-template-columns:repeat(2,1fr); } }
@@ -137,7 +135,6 @@
   .badge { display:inline-block; font-size:11px; padding:1px 8px;
     border-radius:10px; background:#ecf5ff; color:#409eff;
     margin-left:6px; vertical-align:middle; }
-  .badge.warn { background:#fff5e6; color:#d97706; }
 
   /* 底部"查询历史油价"按钮 */
   .history-bar {
@@ -205,21 +202,15 @@
         <div class="ov-value" id="ovChangeValue">--</div>
         <div class="ov-change" id="ovChangeText">--</div>
       </div>
-      <!-- ★ 新增：波动率 -->
-      <div class="ov-item warn">
-        <div class="ov-label"><span class="dot orange"></span>0号柴油 · 波动率</div>
-        <div class="ov-value" id="ovVolatility">--<span class="unit">%</span></div>
-        <div class="ov-region" id="ovVolatilityHint">较上期全国均价</div>
-      </div>
     </div>
-    <div class="ticker-title">各油品全国均价（各省平均 · 右侧为较上期涨跌）</div>
+    <div class="ticker-title">各油品全国均价（各省平均 · 右侧为较上期涨跌 · 下方为波动率）</div>
     <div class="ticker" id="ticker"></div>
     <div class="ov-time" id="ovTime"></div>
   </div>
 
   <div id="result"><div class="loading">加载中...</div></div>
 
-  <!-- ★ 底部：查询历史油价 -->
+  <!-- 底部：查询历史油价 -->
   <div class="history-bar">
     <button id="historyBtn" onclick="toggleHistory()">查询历史油价</button>
   </div>
@@ -234,11 +225,11 @@
 </div>
 
 <script>
-// ★ 展示顺序：0号柴油放最前
+// 展示顺序：0号柴油放最前
 const FUELS = ["0号柴油","89号汽油","92号汽油","95号汽油","98号汽油"];
 const COLORS = { "0号柴油":"#16a085","89号汽油":"#27ae60","92号汽油":"#f1c40f",
                  "95号汽油":"#e74c3c","98号汽油":"#8e44ad" };
-const MIN_DATE = "2025-05-20";     // ★ 历史数据最早日期
+const MIN_DATE = "2025-05-20";
 let DB = {}, chart = null;
 let historyMode = false;
 
@@ -323,7 +314,7 @@ function renderOverview() {
     document.getElementById("ovAvgRegion").textContent = `${items.length} 省平均 · 元/升`;
   }
 
-  // 较上期
+  // 较上期（0号柴油）
   let curSum = 0, curCnt = 0, prevSum = 0, prevCnt = 0;
   for (const p of provinceList()) {
     const rows = DB[p] || [];
@@ -339,11 +330,10 @@ function renderOverview() {
       if (prevV != null) { prevSum += prevV; prevCnt++; }
     }
   }
-  let curAvg = null, prevAvg = null, diff = null;
   if (curCnt > 0 && prevCnt > 0) {
-    curAvg = curSum / curCnt;
-    prevAvg = prevSum / prevCnt;
-    diff = curAvg - prevAvg;
+    const curAvg = curSum / curCnt;
+    const prevAvg = prevSum / prevCnt;
+    const diff = curAvg - prevAvg;
     document.getElementById("ovChangeValue").textContent =
       (diff > 0 ? "+" : "") + diff.toFixed(2);
     const el = document.getElementById("ovChangeText");
@@ -354,24 +344,14 @@ function renderOverview() {
       el.textContent = diff > 0 ? "全国均价上涨" : "全国均价下跌";
       el.className = "ov-change " + (diff > 0 ? "up" : "down");
     }
-
-    // ★ 波动率 = 涨跌幅 / 上期均价 × 100%
-    const vol = (diff / prevAvg) * 100;
-    const volEl = document.getElementById("ovVolatility");
-    volEl.innerHTML = Math.abs(vol).toFixed(2) + '<span class="unit">%</span>';
-    const hintEl = document.getElementById("ovVolatilityHint");
-    if (Math.abs(vol) < 0.005) {
-      hintEl.textContent = "与上期基本持平";
-    } else {
-      hintEl.textContent = (vol > 0 ? "上涨 " : "下跌 ") + Math.abs(vol).toFixed(2) + "%（相对上期均价）";
-    }
   }
 
-  // 行情条
+  // 行情条：每个油品显示 均价 + 涨跌额 + 波动率
   const ticker = document.getElementById("ticker");
   ticker.innerHTML = "";
   for (const f of FUELS) {
     const avgNow = avgOf(items.map(it => it.row[f]));
+
     let s2 = 0, c2 = 0;
     for (const p of provinceList()) {
       const rows = DB[p] || [];
@@ -386,12 +366,23 @@ function renderOverview() {
       }
     }
     const avgPrev = c2 > 0 ? s2 / c2 : null;
+
+    // 涨跌额
     let d = (avgNow != null && avgPrev != null) ? avgNow - avgPrev : null;
     let diffCls = "flat", diffTxt = "—";
     if (d != null) {
       if (Math.abs(d) < 0.005) { diffCls = "flat"; diffTxt = "0.00"; }
       else if (d > 0) { diffCls = "up"; diffTxt = "+" + d.toFixed(2); }
       else { diffCls = "down"; diffTxt = d.toFixed(2); }
+    }
+
+    // 波动率 = 涨跌额 / 上期均价 × 100%
+    let volCls = "flat", volTxt = "—";
+    if (d != null && avgPrev != null && avgPrev !== 0) {
+      const vol = (d / avgPrev) * 100;
+      if (Math.abs(vol) < 0.005) { volCls = "flat"; volTxt = "0.00%"; }
+      else if (vol > 0) { volCls = "up"; volTxt = "+" + vol.toFixed(2) + "%"; }
+      else { volCls = "down"; volTxt = vol.toFixed(2) + "%"; }
     }
 
     const div = document.createElement("div");
@@ -401,7 +392,8 @@ function renderOverview() {
       <div class="ticker-price">
         ${avgNow == null ? "—" : avgNow.toFixed(2)}
         <span class="ticker-diff ${diffCls}">${diffTxt}</span>
-      </div>`;
+      </div>
+      <div class="ticker-vol ${volCls}">波动率 ${volTxt}</div>`;
     ticker.appendChild(div);
   }
 
@@ -480,7 +472,6 @@ function search() {
   const hint = document.getElementById("hint");
   hint.classList.remove("warn");
 
-  // ★ 日期早于最早数据时，提示且不查询
   if (d < MIN_DATE) {
     hint.textContent = `⚠ 历史数据仅从 ${MIN_DATE} 开始，无法查询更早日期`;
     hint.classList.add("warn");
@@ -503,7 +494,7 @@ function search() {
   renderChart();
 }
 
-/* ★ 查询历史油价：切换显示 */
+/* 查询历史油价：切换显示 */
 function toggleHistory() {
   historyMode = !historyMode;
   updateHistoryBtn();
@@ -619,10 +610,7 @@ async function init() {
   });
   sel.addEventListener("change", onProvinceChange);
   document.getElementById("date").value = todayStr();
-
-  // ★ 日期控件设置最早可选日 = MIN_DATE
-  const dateInput = document.getElementById("date");
-  dateInput.min = MIN_DATE;
+  document.getElementById("date").min = MIN_DATE;
 
   renderCountdown();
   renderOverview();
@@ -632,6 +620,6 @@ async function init() {
 init();
 window.addEventListener("resize", () => chart && chart.resize());
 </script>
-<script id="data-json" type="application/json">{"你的数据保持不变"}</script>
+<script id="data-json" type="application/json">{"你的数据保持不变，保留原来的完整 JSON"}</script>
 </body>
 </html>
