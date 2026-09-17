@@ -623,7 +623,7 @@ async function init() {
       if (c === p) return;
       const oc = document.createElement("option");
       oc.value = p + "|" + c;
-      oc.textContent = "　└ " + c;
+      oc.textContent = "    " + c + "（" + p + "）";
       sel.appendChild(oc);
     });
   });
