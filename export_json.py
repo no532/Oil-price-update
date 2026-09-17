@@ -19,6 +19,15 @@ PROVINCES = [
     "内蒙古","四川省","贵州省","云南省","陕西省","青海省","西藏",
 ]
 
+# ★ 17 个独立定价市（sheet 名 = "省-市"）
+CITY_SHEETS = [
+    "广东省-深圳市","辽宁省-大连市","山东省-青岛市","福建省-厦门市",
+    "浙江省-宁波市","西藏-拉萨市","新疆-乌鲁木齐市","新疆-克拉玛依市",
+    "内蒙古-呼和浩特市","四川省-甘孜藏族自治州","四川省-阿坝藏族羌族自治州",
+    "四川省-凉山彝族自治州","云南省-迪庆藏族自治州","云南省-怒江傈僳族自治州",
+    "青海省-玉树藏族自治州","青海省-果洛藏族自治州","甘肃省-甘南藏族自治州",
+]
+
 FUEL_COLS = ["89号汽油","92号汽油","95号汽油","98号汽油","0号柴油"]
 NULL_TOKENS = {"", "-", "—", "无", "None", "nan", "NaN", "null"}
 
@@ -33,7 +42,7 @@ def to_float_or_none(v):
         f = float(v)
     except (ValueError, TypeError):
         return None
-    if f == 0:        # ★ 新增：0 视为无数据
+    if f == 0:          # ★ 0 也视为无数据
         return None
     return f
 
@@ -74,7 +83,8 @@ def get_next_adjust():
 
 def export():
     result = {}
-    for p in PROVINCES:
+    # ★ 省级 + 17 个独立定价市
+    for p in PROVINCES + CITY_SHEETS:
         try:
             df = pd.read_excel(HISTORY_FILE, sheet_name=p)
         except Exception:
@@ -106,7 +116,7 @@ def export():
 
     with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
-    print(f"✅ 已导出 {len(result)-1} 个省份 → {OUTPUT_JSON}")
+    print(f"✅ 已导出 {len(result)-1} 个 sheet → {OUTPUT_JSON}")
     print(f"   下次调价：{next_date}（剩 {days_left} 天）")
 
     inject_into_html(result)

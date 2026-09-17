@@ -20,6 +20,15 @@ PROVINCES = [
     "内蒙古","四川省","贵州省","云南省","陕西省","青海省","西藏",
 ]
 
+# ★ 17 个独立定价市（sheet 名 = 日历表列名 = "省-市"）
+CITY_SHEETS = [
+    "广东省-深圳市","辽宁省-大连市","山东省-青岛市","福建省-厦门市",
+    "浙江省-宁波市","西藏-拉萨市","新疆-乌鲁木齐市","新疆-克拉玛依市",
+    "内蒙古-呼和浩特市","四川省-甘孜藏族自治州","四川省-阿坝藏族羌族自治州",
+    "四川省-凉山彝族自治州","云南省-迪庆藏族自治州","云南省-怒江傈僳族自治州",
+    "青海省-玉树藏族自治州","青海省-果洛藏族自治州","甘肃省-甘南藏族自治州",
+]
+
 # 接口省份名 → 本地 sheet 名
 API_TO_LOCAL = {
     "北京市":"北京市","天津市":"天津市","河北省":"河北省","山西省":"山西省",
@@ -91,8 +100,11 @@ def fill_calendar():
     cal_ws = cal_wb.worksheets[0]
     hist_wb = load_workbook(HISTORY_FILE)
 
+    # ★ 省级 + 市级 都要处理
+    all_names = PROVINCES + CITY_SHEETS
+
     province_dates = {}
-    for p in PROVINCES:
+    for p in all_names:
         if p in hist_wb.sheetnames:
             ws = hist_wb[p]
             dates = set()
@@ -112,7 +124,8 @@ def fill_calendar():
             province_dates[p] = set()
 
     header = [c.value for c in cal_ws[1]]
-    province_col = {n: i+1 for i, n in enumerate(header) if n in PROVINCES}
+    valid_names = set(all_names)                       # ★
+    province_col = {n: i+1 for i, n in enumerate(header) if n in valid_names}
 
     green = PatternFill("solid", fgColor="C6EFCE")
     gray  = PatternFill("solid", fgColor="D9D9D9")
@@ -173,6 +186,14 @@ def daily_job():
             continue
         if update_history(province, api_date, price):
             updated_any = True
+
+    # ★ 爬 17 个独立定价市
+    print("→ 爬取 17 个独立定价市...")
+    try:
+        from fetch_city_oil import main as fetch_cities
+        fetch_cities()
+    except Exception as e:
+        print("⚠ 市级爬虫失败：", e)
 
     fill_calendar()
     print("→ 完成。是否新增过数据：", updated_any)
