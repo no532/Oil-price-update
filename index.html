@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>全国各省油价查询</title>
+<title>全国各省市油价查询</title>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 <style>
   * { box-sizing: border-box; }
@@ -21,7 +21,7 @@
     display:flex; flex-wrap:wrap; gap:14px; align-items:center; }
   label { font-size:14px; color:#5a6b7b; }
   select,input[type=date] { padding:8px 12px; border:1px solid #dcdfe6;
-    border-radius:8px; font-size:14px; outline:none; background:#fff; min-width:140px; }
+    border-radius:8px; font-size:14px; outline:none; background:#fff; min-width:160px; }
   select:focus,input:focus { border-color:#409eff; }
   button { background:#409eff; color:#fff; border:none; cursor:pointer;
     padding:9px 22px; border-radius:8px; font-size:14px; transition:.15s; }
@@ -31,7 +31,6 @@
   .hint { font-size:13px; color:#8492a6; margin-left:auto; }
   .hint.warn { color:#d97706; font-weight:600; }
 
-  /* 全国油价概览 */
   .overview-card {
     background:#fff; border-radius:12px; padding:20px 24px;
     box-shadow:0 2px 12px rgba(0,0,0,.06); margin-bottom:24px;
@@ -78,7 +77,6 @@
   .ov-change.down { color:#27ae60; }
   .ov-change.flat { color:#8492a6; }
 
-  /* 行情条 */
   .ticker-title { font-size:13px; color:#8492a6; margin:6px 0 10px; }
   .ticker {
     display:flex; flex-wrap:wrap; gap:10px;
@@ -110,7 +108,6 @@
   @media (max-width:900px) { .overview-grid { grid-template-columns:repeat(2,1fr); } }
   @media (max-width:480px) { .overview-grid { grid-template-columns:1fr; } }
 
-  /* 表格 */
   table { width:100%; border-collapse:separate; border-spacing:0;
     background:#fff; border-radius:12px; overflow:hidden;
     box-shadow:0 2px 12px rgba(0,0,0,.06); }
@@ -136,21 +133,15 @@
     border-radius:10px; background:#ecf5ff; color:#409eff;
     margin-left:6px; vertical-align:middle; }
 
-  /* 底部"查询历史油价"按钮 */
-  .history-bar {
-    margin-top:24px; text-align:center;
-  }
+  .history-bar { margin-top:24px; text-align:center; }
   .history-bar button {
     padding:11px 28px; font-size:15px;
     background:#fff; color:#c9302c; border:1px solid #c9302c;
     border-radius:10px; font-weight:600;
   }
   .history-bar button:hover { background:#fdf0f0; }
-  .history-bar button.on {
-    background:#c9302c; color:#fff;
-  }
+  .history-bar button.on { background:#c9302c; color:#fff; }
 
-  /* 走势图 */
   .chart-card { background:#fff; border-radius:12px; padding:20px 24px;
     box-shadow:0 2px 12px rgba(0,0,0,.06); margin-top:24px; }
   .chart-title { font-size:16px; font-weight:700; margin:0 0 14px;
@@ -163,10 +154,10 @@
 <body>
 <div class="wrap">
   <div class="header-row">
-    <h1>全国各省油价查询</h1>
+    <h1>全国各省市油价查询</h1>
     <div class="countdown" id="countdown" style="display:none;"></div>
   </div>
-  <div class="sub">数据来源：各省历史油价数据 · 未调价期间沿用上一次公布价格</div>
+  <div class="sub">数据来源：各省历史油价数据 · 市级按所属省份价格展示</div>
 
   <div class="panel">
     <label>省/市：</label>
@@ -178,7 +169,6 @@
     <div class="hint" id="hint"></div>
   </div>
 
-  <!-- 全国油价概览 -->
   <div class="overview-card" id="overviewCard" style="display:none;">
     <div class="overview-title">全国油价概览</div>
     <div class="overview-grid">
@@ -210,7 +200,6 @@
 
   <div id="result"><div class="loading">加载中...</div></div>
 
-  <!-- 底部：查询历史油价 -->
   <div class="history-bar">
     <button id="historyBtn" onclick="toggleHistory()">查询历史油价</button>
   </div>
@@ -225,16 +214,28 @@
 </div>
 
 <script>
-// 展示顺序：0号柴油放最前
 const FUELS = ["0号柴油","89号汽油","92号汽油","95号汽油","98号汽油"];
 const COLORS = { "0号柴油":"#16a085","89号汽油":"#27ae60","92号汽油":"#f1c40f",
                  "95号汽油":"#e74c3c","98号汽油":"#8e44ad" };
 const MIN_DATE = "2025-05-20";
-let DB = {}, chart = null;
+let DB = {}, CITY_MAP = {}, chart = null;
 let historyMode = false;
 
 function provinceList() { return Object.keys(DB).filter(k => k !== "_meta"); }
 function todayStr() { return new Date().toISOString().slice(0,10); }
+
+/** ★ 解析下拉框的值：
+ *  "广东省"       → {province:"广东省", city:""}
+ *  "广东省|深圳市" → {province:"广东省", city:"深圳市"}
+ */
+function parseSelection(val) {
+  if (!val) return { province:"", city:"" };
+  if (val.includes("|")) {
+    const parts = val.split("|");
+    return { province: parts[0], city: parts[1] };
+  }
+  return { province: val, city: "" };
+}
 
 function findPrice(province, dateStr) {
   const rows = DB[province];
@@ -314,7 +315,6 @@ function renderOverview() {
     document.getElementById("ovAvgRegion").textContent = `${items.length} 省平均 · 元/升`;
   }
 
-  // 较上期（0号柴油）
   let curSum = 0, curCnt = 0, prevSum = 0, prevCnt = 0;
   for (const p of provinceList()) {
     const rows = DB[p] || [];
@@ -346,12 +346,10 @@ function renderOverview() {
     }
   }
 
-  // 行情条：每个油品显示 均价 + 涨跌额 + 波动率
   const ticker = document.getElementById("ticker");
   ticker.innerHTML = "";
   for (const f of FUELS) {
     const avgNow = avgOf(items.map(it => it.row[f]));
-
     let s2 = 0, c2 = 0;
     for (const p of provinceList()) {
       const rows = DB[p] || [];
@@ -366,8 +364,6 @@ function renderOverview() {
       }
     }
     const avgPrev = c2 > 0 ? s2 / c2 : null;
-
-    // 涨跌额
     let d = (avgNow != null && avgPrev != null) ? avgNow - avgPrev : null;
     let diffCls = "flat", diffTxt = "—";
     if (d != null) {
@@ -375,8 +371,6 @@ function renderOverview() {
       else if (d > 0) { diffCls = "up"; diffTxt = "+" + d.toFixed(2); }
       else { diffCls = "down"; diffTxt = d.toFixed(2); }
     }
-
-    // 波动率 = 涨跌额 / 上期均价 × 100%
     let volCls = "flat", volTxt = "—";
     if (d != null && avgPrev != null && avgPrev !== 0) {
       const vol = (d / avgPrev) * 100;
@@ -384,7 +378,6 @@ function renderOverview() {
       else if (vol > 0) { volCls = "up"; volTxt = "+" + vol.toFixed(2) + "%"; }
       else { volCls = "down"; volTxt = vol.toFixed(2) + "%"; }
     }
-
     const div = document.createElement("div");
     div.className = "ticker-item";
     div.innerHTML = `
@@ -403,25 +396,25 @@ function renderOverview() {
 
 /* ==================== 走势图 ==================== */
 function renderChart() {
-  const prov = document.getElementById("province").value;
+  const sel = document.getElementById("province").value;
+  const { province: p } = parseSelection(sel);
   let xAxisData = [], series = [], title = "", rangeText = "";
-
   const clean = v => (v == null || v < 3) ? null : v;
 
-  if (prov) {
-    const rows = (DB[prov] || []).slice().reverse();
+  if (p) {
+    const rows = (DB[p] || []).slice().reverse();
     xAxisData = rows.map(r => r.date);
     series = FUELS.map(f => ({
       name: f, type: "line", smooth: true, symbol: "circle", symbolSize: 6,
       itemStyle: { color: COLORS[f] }, lineStyle: { width: 2 },
       data: rows.map(r => clean(r[f]))
     }));
-    title = `${prov}油价走势图`;
+    title = `${p}油价走势图`;
     if (rows.length) rangeText = `区间：${rows[0].date} ~ ${rows[rows.length-1].date} · 共 ${rows.length} 期`;
   } else {
     const byDate = {};
-    for (const p of provinceList()) {
-      for (const r of DB[p]) {
+    for (const p2 of provinceList()) {
+      for (const r of DB[p2]) {
         if (!byDate[r.date]) byDate[r.date] = { sum: {}, cnt: {} };
         FUELS.forEach(f => {
           const v = clean(r[f]);
@@ -467,7 +460,8 @@ function search() {
   historyMode = false;
   updateHistoryBtn();
 
-  const p = document.getElementById("province").value;
+  const selVal = document.getElementById("province").value;
+  const { province: p, city } = parseSelection(selVal);
   const d = document.getElementById("date").value || todayStr();
   const hint = document.getElementById("hint");
   hint.classList.remove("warn");
@@ -482,10 +476,13 @@ function search() {
 
   if (p) {
     const row = findPrice(p, d);
+    const displayName = city ? `${city}` : p;
     hint.textContent = row
-      ? `已按 ${d} 查询，实际生效日期为 ${row.date}`
-      : `${p} 在 ${d} 之前没有数据`;
-    render([{province:p, row, usedFallback: row && row.date !== d}], "one");
+      ? (city
+          ? `${city} 按 ${p} 价展示（生效日期 ${row.date}）`
+          : `已按 ${d} 查询，实际生效日期为 ${row.date}`)
+      : `${displayName} 在 ${d} 之前没有数据`;
+    render([{province: displayName, row, usedFallback: row && row.date !== d}], "one");
   } else {
     const list = provinceList().map(prov => ({province: prov, row: findPrice(prov, d)}));
     hint.textContent = `全国 ${d} 的油价（沿用最近一次调整）`;
@@ -494,30 +491,27 @@ function search() {
   renderChart();
 }
 
-/* 查询历史油价：切换显示 */
 function toggleHistory() {
   historyMode = !historyMode;
   updateHistoryBtn();
+  if (!historyMode) { search(); return; }
 
-  if (!historyMode) {
-    search();
-    return;
-  }
-
-  const p = document.getElementById("province").value;
+  const selVal = document.getElementById("province").value;
+  const { province: p, city } = parseSelection(selVal);
   const hint = document.getElementById("hint");
   hint.classList.remove("warn");
+  const displayName = city ? city : p;
 
   if (p) {
     const rows = DB[p] || [];
-    hint.textContent = `${p} 全部历史数据（共 ${rows.length} 期，最早 ${MIN_DATE}）`;
-    render(rows.map(r => ({ province: p, row: r })), "all");
+    hint.textContent = city
+      ? `${city}（按${p}价）全部历史数据（共 ${rows.length} 期）`
+      : `${p} 全部历史数据（共 ${rows.length} 期，最早 ${MIN_DATE}）`;
+    render(rows.map(r => ({ province: displayName, row: r })), "all");
   } else {
     const allRows = [];
     for (const prov of provinceList()) {
-      for (const r of DB[prov]) {
-        allRows.push({ province: prov, row: r });
-      }
+      for (const r of DB[prov]) allRows.push({ province: prov, row: r });
     }
     allRows.sort((a, b) => b.row.date.localeCompare(a.row.date));
     hint.textContent = `全国全部历史数据（共 ${allRows.length} 条，最早 ${MIN_DATE}）`;
@@ -562,12 +556,17 @@ function onProvinceChange() {
 }
 
 function toggleHistoryKeepMode() {
-  const p = document.getElementById("province").value;
+  const selVal = document.getElementById("province").value;
+  const { province: p, city } = parseSelection(selVal);
   const hint = document.getElementById("hint");
+  const displayName = city ? city : p;
+
   if (p) {
     const rows = DB[p] || [];
-    hint.textContent = `${p} 全部历史数据（共 ${rows.length} 期，最早 ${MIN_DATE}）`;
-    render(rows.map(r => ({ province: p, row: r })), "all");
+    hint.textContent = city
+      ? `${city}（按${p}价）全部历史数据（共 ${rows.length} 期）`
+      : `${p} 全部历史数据（共 ${rows.length} 期，最早 ${MIN_DATE}）`;
+    render(rows.map(r => ({ province: displayName, row: r })), "all");
   } else {
     const allRows = [];
     for (const prov of provinceList()) {
@@ -592,6 +591,7 @@ function renderCountdown() {
 }
 
 async function init() {
+  // 数据
   const inline = document.getElementById("data-json");
   if (inline) DB = JSON.parse(inline.textContent);
   else {
@@ -602,12 +602,32 @@ async function init() {
       return;
     }
   }
+
+  // ★ 市→省映射
+  try {
+    const r = await fetch("city2province.json?_=" + Date.now());
+    CITY_MAP = await r.json();
+  } catch (e) {
+    console.warn("city2province.json 加载失败，只显示省级", e);
+  }
+
+  // ★ 填充下拉框
   const sel = document.getElementById("province");
   provinceList().forEach(p => {
     const o = document.createElement("option");
     o.value = p; o.textContent = p;
     sel.appendChild(o);
+
+    const cities = CITY_MAP[p] || [];
+    cities.forEach(c => {
+      if (c === p) return;
+      const oc = document.createElement("option");
+      oc.value = p + "|" + c;
+      oc.textContent = "　└ " + c;
+      sel.appendChild(oc);
+    });
   });
+
   sel.addEventListener("change", onProvinceChange);
   document.getElementById("date").value = todayStr();
   document.getElementById("date").min = MIN_DATE;
