@@ -6,8 +6,9 @@ import os
 import pandas as pd
 from datetime import date as _date
 
-HISTORY_FILE = r"C:\Users\31007384\Desktop\新建文件夹\各省历史油价数据.xlsx"
-LAST_FETCH_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fetch_city_last.txt")
+BASE = os.path.dirname(os.path.abspath(__file__))
+HISTORY_FILE = os.path.join(BASE, "各省历史油价数据.xlsx")
+LAST_FETCH_FILE = os.path.join(BASE, "fetch_city_last.txt")
 
 # 17 个独立定价市：sheet 名 → 本地市名 → 行政区划代码
 CITIES = [
@@ -39,9 +40,7 @@ HEADERS = {
 FUEL_COLS = ["89号汽油","92号汽油","95号汽油","98号汽油","0号柴油"]
 
 
-# ============ 日期检查 ============
 def already_fetched_today():
-    """今天是否已经爬过"""
     today = _date.today().strftime("%Y-%m-%d")
     if os.path.exists(LAST_FETCH_FILE):
         with open(LAST_FETCH_FILE, "r", encoding="utf-8") as f:
@@ -52,15 +51,12 @@ def already_fetched_today():
 
 
 def mark_fetched_today():
-    """记录今天已爬过"""
     today = _date.today().strftime("%Y-%m-%d")
     with open(LAST_FETCH_FILE, "w", encoding="utf-8") as f:
         f.write(today)
 
 
-# ============ 爬虫 ============
 def fetch_city_history(code):
-    """爬一个市的历史油价表。返回 [(日期, 90, 92, 93, 95, 97, 0), ...]"""
     url = f"https://www.icauto.com.cn/oil/price_{code}_0.html"
     r = requests.get(url, headers=HEADERS, timeout=20)
     r.encoding = "utf-8"
@@ -86,7 +82,6 @@ def fetch_city_history(code):
 
 
 def to_float(v):
-    """'8.31' → 8.31；'0' 或空 → None"""
     try:
         f = float(v)
         return None if f == 0 else f
@@ -95,11 +90,6 @@ def to_float(v):
 
 
 def build_records(raw_rows):
-    """
-    把 7 列原始数据转成需要的结构：
-    日期, 89号汽油(空), 92号汽油, 95号汽油, 98号汽油(空), 0号柴油
-    丢弃 90、93、97 列
-    """
     records = []
     for r in raw_rows:
         date = r[0]
@@ -118,9 +108,6 @@ def build_records(raw_rows):
 
 
 def merge_into_excel(sheet_name, new_records):
-    """
-    读现有 sheet，合并新数据（你手动的旧数据优先，日期去重），写回
-    """
     try:
         df_old = pd.read_excel(HISTORY_FILE, sheet_name=sheet_name)
         df_old["日期"] = pd.to_datetime(df_old["日期"], errors="coerce").dt.strftime("%Y-%m-%d")
@@ -129,7 +116,7 @@ def merge_into_excel(sheet_name, new_records):
 
     df_new = pd.DataFrame(new_records)
     df_all = pd.concat([df_new, df_old], ignore_index=True)
-    df_all = df_all.drop_duplicates(subset=["日期"], keep="last")   # ★ 旧数据（手动填的）优先
+    df_all = df_all.drop_duplicates(subset=["日期"], keep="last")   # 旧数据（手动填的）优先
     df_all = df_all.sort_values("日期", ascending=False).reset_index(drop=True)
 
     with pd.ExcelWriter(HISTORY_FILE, engine="openpyxl", mode="a",
@@ -139,11 +126,7 @@ def merge_into_excel(sheet_name, new_records):
     return len(df_all), len(df_new)
 
 
-# ============ 主流程 ============
 def main(force=False):
-    """
-    force=True 时忽略"今天已爬过"，强制重爬
-    """
     if not force and already_fetched_today():
         print("→ 今日已爬过市级数据，跳过")
         return
