@@ -6,7 +6,9 @@ import os
 import pandas as pd
 from datetime import date as _date
 
-HISTORY_FILE = r"C:\Users\31007384\Desktop\新建文件夹\各省历史油价数据.xlsx"
+import os
+BASE = os.path.dirname(os.path.abspath(__file__))
+HISTORY_FILE = os.path.join(BASE, "各省历史油价数据.xlsx")
 LAST_FETCH_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fetch_city_last.txt")
 
 # 17 个独立定价市：sheet 名 → 本地市名 → 行政区划代码
