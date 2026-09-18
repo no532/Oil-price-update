@@ -1,12 +1,16 @@
 import time
 import subprocess
 import sys
+import os
 from datetime import datetime, timedelta
 
 RUN_HOUR = 9      # 每天几点跑（24小时制）
 RUN_MINUTE = 0    # 几分跑
-SCRIPT = r"C:\Users\31007384\Desktop\油价自动抓取\国内\测试.py"
-LOG    = r"C:\Users\31007384\Desktop\油价自动抓取\国内\scheduler.log"
+
+# ★ 用相对路径：脚本自己所在目录
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SCRIPT = os.path.join(BASE_DIR, "测试.py")
+LOG    = os.path.join(BASE_DIR, "scheduler.log")
 
 def log(msg):
     with open(LOG, "a", encoding="utf-8") as f:
