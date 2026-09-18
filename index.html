@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>油价查询</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,"Microsoft YaHei",sans-serif; background:#f0f2f5; }
+  .tab-bar {
+    display:flex; gap:4px; padding:0 24px;
+    background:#fff; border-bottom:1px solid #e4e7ed;
+    position:sticky; top:0; z-index:100;
+  }
+  .tab {
+    padding:14px 24px; cursor:pointer; font-size:15px; color:#5a6b7b;
+    border-bottom:3px solid transparent; transition:.15s; user-select:none;
+  }
+  .tab:hover { color:#409eff; }
+  .tab.active { color:#c9302c; border-bottom-color:#c9302c; font-weight:600; }
+  .pane { display:none; }
+  .pane.active { display:block; }
+  iframe { width:100%; border:none; display:block; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <div class="tab active" data-tab="domestic">全国各省市油价</div>
+  <div class="tab" data-tab="intl">国际原油</div>
+</div>
+
+<!-- ============ 国内页 ============ -->
+<div class="pane active" id="pane-domestic">
+  <iframe id="frame-domestic" src="国内/domestic.html" style="height:calc(100vh - 52px);"></iframe>
+</div>
+
+<!-- ============ 国际原油页 ============ -->
+<div class="pane" id="pane-intl">
+  <div style="padding:24px;max-width:1100px;margin:0 auto;">
+
+    <h1 style="text-align:center;font-size:26px;margin:8px 0 24px;font-weight:600;">
+      国际油价今日行情
+    </h1>
+
+    <table style="width:100%;border-collapse:collapse;background:#fff;font-size:16px;">
+      <thead>
+        <tr>
+          <th style="padding:14px;border:1px solid #e4e7ed;color:#27ae60;font-weight:600;">国际（美元）</th>
+          <th style="padding:14px;border:1px solid #e4e7ed;color:#27ae60;font-weight:600;">当前</th>
+          <th style="padding:14px;border:1px solid #e4e7ed;color:#27ae60;font-weight:600;">涨跌幅</th>
+          <th style="padding:14px;border:1px solid #e4e7ed;color:#27ae60;font-weight:600;">今开</th>
+          <th style="padding:14px;border:1px solid #e4e7ed;color:#27ae60;font-weight:600;">昨收</th>
+          <th style="padding:14px;border:1px solid #e4e7ed;color:#27ae60;font-weight:600;">最高</th>
+          <th style="padding:14px;border:1px solid #e4e7ed;color:#27ae60;font-weight:600;">最低</th>
+        </tr>
+      </thead>
+      <tbody id="intlTableBody">
+        <tr><td colspan="7" style="padding:20px;text-align:center;color:#8492a6;">加载中...</td></tr>
+      </tbody>
+    </table>
+
+    <div id="intlTime" style="text-align:right;font-size:12px;color:#b0b8c1;margin-top:8px;"></div>
+
+    <!-- 走势图 -->
+    <div style="margin-top:36px;">
+      <h2 style="text-align:center;font-size:18px;margin:0 0 6px;font-weight:600;">
+        24小时 WTI 美国原油价格走势图
+      </h2>
+      <div style="text-align:center;font-size:12px;color:#b0b8c1;margin-bottom:12px;">
+        注：布伦特原油行情更新可能滞后于 WTI，曲线末端缺失属正常现象
+      </div>
+      <div id="intlChart" style="width:100%;height:420px;"></div>
+    </div>
+
+    <!-- 其他能源品种 -->
+    <div style="margin-top:36px;">
+      <h2 style="font-size:16px;margin:0 0 14px;border-left:4px solid #c9302c;padding-left:10px;">
+        其他能源品种涨跌幅（数据源：66laji）
+      </h2>
+      <div id="intlOthers" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script>
+// ===== 页签切换 =====
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'intl') {
+      setTimeout(() => { intlChart && intlChart.resize(); }, 50);
+    }
+  };
+});
+
+let intlChart = null;
+
+// ===== 数据加载 =====
+// 表格 + 走势图：都读 oil_minline.json（新浪分时）
+async function loadMinline() {
+  try {
+    const res = await fetch('国际/oil_minline.json?_=' + Date.now());
+    const data = await res.json();
+    renderTable(data);
+    renderChart(data);
+    document.getElementById('intlTime').textContent = '更新时间：' + data.update_time;
+  } catch (e) {
+    document.getElementById('intlTableBody').innerHTML =
+      '<tr><td colspan="7" style="padding:20px;text-align:center;color:#e74c3c;">读取 国际/oil_minline.json 失败，请确认 oil_chart.py 已运行</td></tr>';
+  }
+}
+
+// 其他能源品种：读 oil_data.json（66laji）
+async function loadSnapshot() {
+  try {
+    const res = await fetch('国际/oil_data.json?_=' + Date.now());
+    const data = await res.json();
+    renderOthers(data);
+  } catch (e) {
+    console.warn('oil_data.json 加载失败', e);
+  }
+}
+
+// ===== 表格 =====
+function renderTable(data) {
+  const tbody = document.getElementById('intlTableBody');
+  tbody.innerHTML = '';
+
+  const order = ['布伦特', 'WTI美国'];  // 显示顺序
+
+  for (const name of order) {
+    const pts = data.series[name] || [];
+    const meta = (data.meta && data.meta[name]) || {};
+
+    if (!pts.length) {
+      tbody.innerHTML += `<tr>
+        <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;color:#27ae60;font-weight:600;">${name}</td>
+        <td colspan="6" style="padding:14px;border:1px solid #e4e7ed;text-align:center;color:#c0c4cc;">无数据</td>
+      </tr>`;
+      continue;
+    }
+
+    const cur = pts[pts.length - 1][1];
+    const open = meta.open;
+    const prev = meta.prev_close != null ? parseFloat(meta.prev_close) : null;
+    const high = meta.high != null ? parseFloat(meta.high) : null;
+    const low  = meta.low  != null ? parseFloat(meta.low)  : null;
+
+    // 涨跌幅 = 当前 - 昨收
+    let pctText = '—';
+    if (prev != null && !isNaN(prev)) {
+      const diff = cur - prev;
+      const pct = (diff / prev) * 100;
+      const up = diff > 0, down = diff < 0;
+      const color = up ? '#e74c3c' : down ? '#27ae60' : '#8492a6';
+      const sign = up ? '+' : '';
+      pctText = `<span style="color:${color};font-weight:600;">${sign}${diff.toFixed(2)}</span>
+                 <span style="color:${color};font-size:13px;">（${sign}${pct.toFixed(2)}%）</span>`;
+    }
+
+    const fmt = v => (v == null || isNaN(v)) ? '—' : v.toFixed(2);
+
+    tbody.innerHTML += `
+      <tr>
+        <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;color:#27ae60;font-weight:600;">${name}</td>
+        <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;font-weight:600;">${cur.toFixed(2)}</td>
+        <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;">${pctText}</td>
+        <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;">${fmt(open)}</td>
+        <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;">${fmt(prev)}</td>
+        <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;">${fmt(high)}</td>
+        <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;">${fmt(low)}</td>
+      </tr>`;
+  }
+}
+
+// ===== 其他能源品种 =====
+function renderOthers(data) {
+  const box = document.getElementById('intlOthers');
+  box.innerHTML = '';
+  const exclude = ['WTI纽约原油', '布伦特原油'];
+  const others = data.items.filter(i => !exclude.includes(i.name));
+
+  for (const it of others) {
+    const pct = parseFloat(it.change_percent);
+    const up = pct > 0, down = pct < 0;
+    const color = up ? '#e74c3c' : down ? '#27ae60' : '#8492a6';
+    const sign = up ? '+' : '';
+    box.innerHTML += `
+      <div style="background:#fff;border:1px solid #e4e7ed;border-radius:8px;padding:12px 14px;">
+        <div style="font-size:13px;color:#5a6b7b;margin-bottom:6px;">${it.name}</div>
+        <div style="font-size:15px;font-weight:600;color:#1f2d3d;">${it.price}</div>
+        <div style="font-size:13px;font-weight:600;color:${color};margin-top:4px;">${sign}${it.change}（${sign}${it.change_percent}）</div>
+      </div>`;
+  }
+}
+
+// ===== 走势图 =====
+function renderChart(data) {
+  if (!intlChart) intlChart = echarts.init(document.getElementById('intlChart'));
+  if (!data || !data.series) return;
+
+  const names = Object.keys(data.series);
+  const colors = { 'WTI美国': '#409eff', '布伦特': '#e6a23c' };
+
+  // 取最长那条线的时间轴
+  let xData = [];
+  names.forEach(n => {
+    const t = (data.series[n] || []).map(p => p[0]);
+    if (t.length > xData.length) xData = t;
+  });
+
+  const series = names.map(name => {
+    const map = {};
+    (data.series[name] || []).forEach(p => { map[p[0]] = p[1]; });
+    return {
+      name,
+      type: 'line',
+      smooth: true,
+      symbol: 'none',
+      connectNulls: false,
+      lineStyle: { width: 1.5, color: colors[name] || '#999' },
+      itemStyle: { color: colors[name] || '#999' },
+      data: xData.map(t => (t in map) ? map[t] : null)
+    };
+  });
+
+  intlChart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { top: 0, data: names },
+    grid: { left: 60, right: 30, top: 50, bottom: 60 },
+    xAxis: {
+      type: 'category', data: xData,
+      axisLabel: { fontSize: 11, interval: Math.floor(xData.length / 12) }
+    },
+    yAxis: { type: 'value', name: '美元/桶', scale: true },
+    series
+  }, true);
+  intlChart.resize();
+}
+
+// ===== 初始化 =====
+loadMinline();
+loadSnapshot();
+setInterval(loadMinline, 60000);
+setInterval(loadSnapshot, 60000);
+
+window.addEventListener('resize', () => intlChart && intlChart.resize());
+</script>
+</body>
+</html>
