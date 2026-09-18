@@ -84,23 +84,10 @@ def get_next_adjust():
 def export():
     result = {}
     # ★ 省级 + 17 个独立定价市
-    for p in PROVINCES + CITY_SHEETS:
+        for p in PROVINCES:
         try:
             df = pd.read_excel(HISTORY_FILE, sheet_name=p)
         except Exception:
-            continue
-        # ★ 兼容两种表头
-        df = df.rename(columns={
-            "调价日期": "日期",
-            "89汽油": "89号汽油",
-            "92汽油": "92号汽油",
-            "95汽油": "95号汽油",
-            "98汽油": "98号汽油",
-            "0柴油": "0号柴油",
-        })
-        # ★ 如果没有"日期"列，跳过该 sheet
-        if "日期" not in df.columns:
-            print(f"⚠ 跳过 {p}：没有『日期』列")
             continue
         df["日期"] = pd.to_datetime(df["日期"], errors="coerce").dt.strftime("%Y-%m-%d")
         df = df.dropna(subset=["日期"]).sort_values("日期", ascending=False).reset_index(drop=True)

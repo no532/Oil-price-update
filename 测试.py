@@ -101,7 +101,7 @@ def fill_calendar():
     hist_wb = load_workbook(HISTORY_FILE)
 
     # ★ 省级 + 市级 都要处理
-    all_names = PROVINCES + CITY_SHEETS
+    all_names = PROVINCES
 
     province_dates = {}
     for p in all_names:
@@ -186,17 +186,6 @@ def daily_job():
             continue
         if update_history(province, api_date, price):
             updated_any = True
-
-    # ★ 爬 17 个独立定价市
-    print("→ 爬取 17 个独立定价市...")
-    try:
-        from fetch_city_oil import main as fetch_cities
-        fetch_cities()
-    except Exception as e:
-        print("⚠ 市级爬虫失败：", e)
-
-    fill_calendar()
-    print("→ 完成。是否新增过数据：", updated_any)
 
 
 if __name__ == "__main__":

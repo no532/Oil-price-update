@@ -5,8 +5,8 @@ from datetime import datetime, timedelta
 
 RUN_HOUR = 9      # 每天几点跑（24小时制）
 RUN_MINUTE = 0    # 几分跑
-SCRIPT = r"C:\Users\31007384\Desktop\新建文件夹\测试.py"
-LOG    = r"C:\Users\31007384\Desktop\新建文件夹\scheduler.log"
+SCRIPT = r"C:\Users\31007384\Desktop\油价自动抓取\国内\测试.py"
+LOG    = r"C:\Users\31007384\Desktop\油价自动抓取\国内\scheduler.log"
 
 def log(msg):
     with open(LOG, "a", encoding="utf-8") as f:

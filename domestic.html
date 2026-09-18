@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>全国各省油价查询</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family:-apple-system,"Microsoft YaHei","Segoe UI",sans-serif;
+    margin:0; padding:32px 24px; background:#f0f2f5; color:#1f2d3d; }
+  .wrap { max-width:1280px; margin:0 auto; }
+  .header-row { display:flex; align-items:baseline; justify-content:space-between;
+    flex-wrap:wrap; gap:12px; margin-bottom:6px; }
+  h1 { font-size:24px; margin:0; letter-spacing:.5px; }
+  .countdown { background:#fff5e6; color:#d97706; border:1px solid #fde68a;
+    padding:6px 14px; border-radius:20px; font-size:13px; font-weight:600; }
+  .countdown b { color:#b45309; font-size:15px; margin:0 3px; }
+  .sub { color:#8492a6; font-size:13px; margin-bottom:22px; }
+
+  /* 全国油价概览 */
+  .overview-card {
+    background:#fff; border-radius:12px; padding:20px 24px;
+    box-shadow:0 2px 12px rgba(0,0,0,.06); margin-bottom:24px;
+  }
+  .overview-title {
+    font-size:16px; font-weight:700; margin:0 0 16px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .overview-title::before {
+    content:""; display:inline-block; width:4px; height:18px;
+    background:#c9302c; border-radius:2px;
+  }
+  .overview-grid {
+    display:grid; grid-template-columns:repeat(4, 1fr); gap:14px;
+    margin-bottom:16px;
+  }
+  .ov-item {
+    background:linear-gradient(180deg,#fdf0f0 0%,#fbe9e9 100%);
+    border:1px solid #f5d5d5; border-radius:10px; padding:14px 18px;
+    min-height: 96px;
+  }
+  .ov-item.alt {
+    background:linear-gradient(180deg,#f0f7ff 0%,#e6f0fb 100%);
+    border-color:#d0e3f5;
+  }
+  .ov-label {
+    font-size:13px; color:#a35a5a; margin-bottom:6px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .ov-item.alt .ov-label { color:#4d7dab; }
+  .ov-label .dot { width:6px; height:6px; border-radius:50%; }
+  .ov-label .dot.up   { background:#e74c3c; }
+  .ov-label .dot.down { background:#27ae60; }
+  .ov-label .dot.blue { background:#409eff; }
+  .ov-value {
+    font-size:28px; font-weight:700; color:#3a1f1f;
+    font-variant-numeric:tabular-nums; line-height:1.1;
+  }
+  .ov-item.alt .ov-value { color:#1f3a52; }
+  .ov-region { font-size:13px; color:#a35a5a; margin-top:6px; }
+  .ov-item.alt .ov-region { color:#4d7dab; }
+  .ov-change { font-size:13px; margin-top:6px; font-weight:600; }
+  .ov-change.up   { color:#e74c3c; }
+  .ov-change.down { color:#27ae60; }
+  .ov-change.flat { color:#8492a6; }
+
+  .ticker-title { font-size:13px; color:#8492a6; margin:6px 0 10px; }
+  .ticker {
+    display:flex; flex-wrap:wrap; gap:10px;
+    border-top:1px solid #f0f2f5; padding-top:14px;
+  }
+  .ticker-item {
+    flex:1 1 0; min-width:140px;
+    background:#fafbfc; border-radius:8px;
+    padding:10px 14px;
+  }
+  .ticker-name { font-size:12px; color:#8492a6; margin-bottom:4px; }
+  .ticker-price {
+    font-size:18px; font-weight:700; font-variant-numeric:tabular-nums;
+    display:flex; align-items:baseline; gap:6px;
+  }
+  .ticker-diff { font-size:12px; font-weight:600; }
+  .ticker-diff.up   { color:#e74c3c; }
+  .ticker-diff.down { color:#27ae60; }
+  .ticker-diff.flat { color:#b0b8c1; }
+  .ticker-vol { font-size:11px; margin-top:2px; font-variant-numeric:tabular-nums; }
+  .ticker-vol.up   { color:#e74c3c; }
+  .ticker-vol.down { color:#27ae60; }
+  .ticker-vol.flat { color:#b0b8c1; }
+  .ov-time { font-size:12px; color:#b0b8c1; margin-top:14px; }
+
+  @media (max-width:900px) { .overview-grid { grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:480px) { .overview-grid { grid-template-columns:1fr; } }
+
+  /* 选择面板 */
+  .selector-panel {
+    background:#fff; border-radius:12px; padding:18px 20px;
+    box-shadow:0 2px 12px rgba(0,0,0,.06); margin-bottom:24px;
+  }
+  .selector-label {
+    font-size:13px; color:#8492a6; margin:0 0 8px 2px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .selector-label::before {
+    content:""; display:inline-block; width:3px; height:12px;
+    background:#409eff; border-radius:2px;
+  }
+  .chip-row {
+    display:flex; flex-wrap:wrap; gap:8px;
+    margin-bottom:14px;
+  }
+  .chip-row:last-child { margin-bottom:0; }
+  .chip {
+    display:inline-block; padding:6px 14px;
+    background:#f5f7fa; color:#5a6b7b; border:1px solid #e4e7ed;
+    border-radius:16px; font-size:13px; cursor:pointer;
+    transition:.15s; user-select:none; white-space:nowrap;
+  }
+  .chip:hover { background:#ecf5ff; border-color:#b3d8ff; color:#409eff; }
+  .chip.active {
+    background:#409eff; border-color:#409eff;
+    color:#fff; font-weight:600;
+    box-shadow:0 2px 6px rgba(64,158,255,.35);
+  }
+
+  .query-bar {
+    display:flex; gap:14px; align-items:center;
+    flex-wrap:wrap; margin-top:16px;
+    padding-top:16px; border-top:1px solid #f0f2f5;
+  }
+  label { font-size:14px; color:#5a6b7b; }
+  input[type=date] { padding:8px 12px; border:1px solid #dcdfe6;
+    border-radius:8px; font-size:14px; outline:none; background:#fff; }
+  input[type=date]:focus { border-color:#409eff; }
+  button {
+    background:#409eff; color:#fff; border:none; cursor:pointer;
+    padding:9px 22px; border-radius:8px; font-size:14px; transition:.15s;
+  }
+  button:hover { background:#66b1ff; }
+  button.ghost { background:#fff; color:#409eff; border:1px solid #409eff; }
+  button.ghost:hover { background:#ecf5ff; }
+  .hint { font-size:13px; color:#8492a6; margin-left:auto; }
+  .hint.warn { color:#d97706; font-weight:600; }
+
+  /* 表格 */
+  table { width:100%; border-collapse:separate; border-spacing:0;
+    background:#fff; border-radius:12px; overflow:hidden;
+    box-shadow:0 2px 12px rgba(0,0,0,.06); }
+  thead th { background:linear-gradient(180deg,#c9302c 0%,#a52a26 100%);
+    color:#fff; font-weight:600; font-size:14px; padding:14px 16px;
+    text-align:left; white-space:nowrap; }
+  thead th:not(:first-child) { text-align:center; }
+  tbody td { padding:14px 16px; font-size:14px; border-bottom:1px solid #f0f2f5;
+    vertical-align:top; }
+  tbody td:not(:first-child) { text-align:center; }
+  tbody tr:last-child td { border-bottom:none; }
+  tbody tr:hover { background:#fafbfc; }
+  td.province { font-weight:600; color:#1f2d3d; white-space:nowrap; }
+  td.date { color:#409eff; font-size:13px; white-space:nowrap; }
+  .price { font-size:17px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .diff { font-size:12px; margin-top:2px; font-variant-numeric:tabular-nums; }
+  .diff.up { color:#e74c3c; }
+  .diff.down { color:#27ae60; }
+  .diff.flat { color:#b0b8c1; }
+  .empty { color:#c0c4cc; }
+  .loading { text-align:center; padding:40px; color:#8492a6; }
+  .badge { display:inline-block; font-size:11px; padding:1px 8px;
+    border-radius:10px; background:#ecf5ff; color:#409eff;
+    margin-left:6px; vertical-align:middle; }
+
+  /* 历史按钮 */
+  .history-bar { margin-top:24px; text-align:center; }
+  .history-bar button {
+    padding:11px 28px; font-size:15px;
+    background:#fff; color:#c9302c; border:1px solid #c9302c;
+    border-radius:10px; font-weight:600;
+  }
+  .history-bar button:hover { background:#fdf0f0; }
+  .history-bar button.on { background:#c9302c; color:#fff; }
+
+  /* 走势图 */
+  .chart-card { background:#fff; border-radius:12px; padding:20px 24px;
+    box-shadow:0 2px 12px rgba(0,0,0,.06); margin-top:24px; }
+  .chart-title { font-size:16px; font-weight:700; margin:0 0 14px;
+    border-left:4px solid #c9302c; padding-left:10px;
+    display:flex; justify-content:space-between; align-items:center; }
+  .chart-title .range { font-size:12px; color:#8492a6; font-weight:400; }
+  #chart { width:100%; height:420px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header-row">
+    <h1>全国各省油价查询</h1>
+    <div class="countdown" id="countdown" style="display:none;"></div>
+  </div>
+  <div class="sub">数据来源：各省发改委数据</div>
+
+  <!-- 全国油价概览 -->
+  <div class="overview-card" id="overviewCard" style="display:none;">
+    <div class="overview-title">全国油价概览</div>
+    <div class="overview-grid">
+      <div class="ov-item">
+        <div class="ov-label"><span class="dot up"></span>0号柴油 · 最高</div>
+        <div class="ov-value" id="ovMaxPrice">--</div>
+        <div class="ov-region" id="ovMaxRegion">--</div>
+      </div>
+      <div class="ov-item">
+        <div class="ov-label"><span class="dot down"></span>0号柴油 · 最低</div>
+        <div class="ov-value" id="ovMinPrice">--</div>
+        <div class="ov-region" id="ovMinRegion">--</div>
+      </div>
+      <div class="ov-item alt">
+        <div class="ov-label"><span class="dot blue"></span>0号柴油 · 全国均价</div>
+        <div class="ov-value" id="ovAvgPrice">--</div>
+        <div class="ov-region" id="ovAvgRegion">--</div>
+      </div>
+      <div class="ov-item alt">
+        <div class="ov-label"><span class="dot blue"></span>较上期（0号柴油均价）</div>
+        <div class="ov-value" id="ovChangeValue">--</div>
+        <div class="ov-change" id="ovChangeText">--</div>
+      </div>
+    </div>
+    <div class="ticker-title">各油品全国均价（各省平均 · 右侧为较上期涨跌 · 下方为波动率）</div>
+    <div class="ticker" id="ticker"></div>
+    <div class="ov-time" id="ovTime"></div>
+  </div>
+
+  <!-- 选择面板（只有省级） -->
+  <div class="selector-panel">
+    <div class="selector-label">选择省份 / 直辖市</div>
+    <div class="chip-row" id="provinceRow"></div>
+
+    <div class="query-bar">
+      <label>日期：</label>
+      <input type="date" id="date">
+      <button onclick="search()">查询</button>
+      <button class="ghost" onclick="reset()">重置</button>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+
+  <div id="result"><div class="loading">加载中...</div></div>
+
+  <div class="history-bar">
+    <button id="historyBtn" onclick="toggleHistory()">查询历史油价</button>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">
+      <span id="chartTitle">全国油价走势图</span>
+      <span class="range" id="chartRange"></span>
+    </div>
+    <div id="chart"></div>
+  </div>
+</div>
+
+<script>
+// ==================== 配置 ====================
+const FUELS = ["0号柴油","89号汽油","92号汽油","95号汽油","98号汽油"];
+const COLORS = { "0号柴油":"#1e90ff","89号汽油":"#2c3e50","92号汽油":"#f1c40f",
+                 "95号汽油":"#e74c3c","98号汽油":"#8e44ad" };
+const MIN_DATE = "2025-05-20";
+
+// ==================== 状态 ====================
+let DB = {}, chart = null;
+let historyMode = false;
+let currentProvince = "";
+
+function provinceList() {
+  return Object.keys(DB).filter(k => k !== "_meta" && !k.includes("-"));
+}
+function todayStr() { return new Date().toISOString().slice(0,10); }
+
+// ==================== 工具 ====================
+function findPrice(province, dateStr) {
+  const rows = DB[province];
+  if (!rows || !rows.length) return null;
+  for (const r of rows) if (r.date <= dateStr) return r;
+  return null;
+}
+
+function fmtDiff(d) {
+  if (d === null || d === undefined) return '';
+  if (d === 0) return '<div class="diff flat">0.00</div>';
+  const cls = d > 0 ? 'up' : 'down';
+  const sign = d > 0 ? '+' : '';
+  return `<div class="diff ${cls}">${sign}${d.toFixed(2)}</div>`;
+}
+
+// ==================== 省份 chip ====================
+function renderProvinceChips() {
+  const row = document.getElementById("provinceRow");
+  row.innerHTML = "";
+
+  const all = document.createElement("div");
+  all.className = "chip" + (currentProvince === "" ? " active" : "");
+  all.textContent = "全国";
+  all.onclick = () => {
+    currentProvince = "";
+    renderProvinceChips();
+    search();
+  };
+  row.appendChild(all);
+
+  provinceList().forEach(p => {
+    const chip = document.createElement("div");
+    chip.className = "chip" + (currentProvince === p ? " active" : "");
+    chip.textContent = p;
+    chip.onclick = () => {
+      currentProvince = (currentProvince === p) ? "" : p;
+      renderProvinceChips();
+      search();
+    };
+    row.appendChild(chip);
+  });
+}
+
+// ==================== 表格 ====================
+function render(list, mode) {
+  const box = document.getElementById("result");
+  if (!list.length) { box.innerHTML = '<div class="loading">没有匹配的数据</div>'; return; }
+  let html = `<table><thead><tr>
+    <th>省/市</th><th>生效日期</th>
+    ${FUELS.map(f=>`<th>${f}</th>`).join("")}
+  </tr></thead><tbody>`;
+  for (const item of list) {
+    if (!item.row) {
+      html += `<tr><td class="province">${item.province}</td>
+        <td colspan="${FUELS.length+1}" class="empty">无数据</td></tr>`;
+      continue;
+    }
+    const r = item.row;
+    html += `<tr>
+      <td class="province">${item.province}</td>
+      <td class="date">${r.date}${mode==="one" && item.usedFallback ? ' <span class="badge">沿用</span>' : ""}</td>`;
+    for (const f of FUELS) {
+      const v = r[f];
+      if (v === null || v === undefined) html += `<td class="empty">—</td>`;
+      else html += `<td><div class="price">${v.toFixed(2)}</div>${fmtDiff(r[f+"_diff"])}</td>`;
+    }
+    html += `</tr>`;
+  }
+  html += "</tbody></table>";
+  box.innerHTML = html;
+}
+
+// ==================== 全国概览 ====================
+function avgOf(arr) {
+  const v = arr.filter(x => x != null);
+  if (!v.length) return null;
+  return v.reduce((a,b)=>a+b,0) / v.length;
+}
+
+function renderOverview() {
+  const today = todayStr();
+  const items = [];
+  for (const p of provinceList()) {
+    const row = findPrice(p, today);
+    if (row) items.push({ province: p, row });
+  }
+  if (!items.length) return;
+
+  const diesels = items
+    .filter(it => it.row["0号柴油"] != null)
+    .map(it => ({ province: it.province, price: it.row["0号柴油"], date: it.row.date }));
+
+  if (diesels.length) {
+    const maxItem = diesels.reduce((a,b) => a.price >= b.price ? a : b);
+    const minItem = diesels.reduce((a,b) => a.price <= b.price ? a : b);
+    document.getElementById("ovMaxPrice").textContent = maxItem.price.toFixed(2);
+    document.getElementById("ovMaxRegion").textContent = `${maxItem.province} · 元/升`;
+    document.getElementById("ovMinPrice").textContent = minItem.price.toFixed(2);
+    document.getElementById("ovMinRegion").textContent = `${minItem.province} · 元/升`;
+  }
+
+  const dieselAvg = avgOf(items.map(it => it.row["0号柴油"]));
+  if (dieselAvg != null) {
+    document.getElementById("ovAvgPrice").textContent = dieselAvg.toFixed(2);
+    document.getElementById("ovAvgRegion").textContent = `${items.length} 省平均 · 元/升`;
+  }
+
+  let curSum = 0, curCnt = 0, prevSum = 0, prevCnt = 0;
+  for (const p of provinceList()) {
+    const rows = DB[p] || [];
+    let curIdx = -1;
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i].date <= today) { curIdx = i; break; }
+    }
+    if (curIdx === -1) continue;
+    const curV = rows[curIdx]["0号柴油"];
+    if (curV != null) { curSum += curV; curCnt++; }
+    if (curIdx + 1 < rows.length) {
+      const prevV = rows[curIdx + 1]["0号柴油"];
+      if (prevV != null) { prevSum += prevV; prevCnt++; }
+    }
+  }
+  if (curCnt > 0 && prevCnt > 0) {
+    const curAvg = curSum / curCnt;
+    const prevAvg = prevSum / prevCnt;
+    const diff = curAvg - prevAvg;
+    document.getElementById("ovChangeValue").textContent =
+      (diff > 0 ? "+" : "") + diff.toFixed(2);
+    const el = document.getElementById("ovChangeText");
+    if (Math.abs(diff) < 0.005) {
+      el.textContent = "与上期持平";
+      el.className = "ov-change flat";
+    } else {
+      el.textContent = diff > 0 ? "全国均价上涨" : "全国均价下跌";
+      el.className = "ov-change " + (diff > 0 ? "up" : "down");
+    }
+  }
+
+  const ticker = document.getElementById("ticker");
+  ticker.innerHTML = "";
+  for (const f of FUELS) {
+    const avgNow = avgOf(items.map(it => it.row[f]));
+    let s2 = 0, c2 = 0;
+    for (const p of provinceList()) {
+      const rows = DB[p] || [];
+      let curIdx = -1;
+      for (let i = 0; i < rows.length; i++) {
+        if (rows[i].date <= today) { curIdx = i; break; }
+      }
+      if (curIdx === -1) continue;
+      if (curIdx + 1 < rows.length) {
+        const v = rows[curIdx + 1][f];
+        if (v != null) { s2 += v; c2++; }
+      }
+    }
+    const avgPrev = c2 > 0 ? s2 / c2 : null;
+    let d = (avgNow != null && avgPrev != null) ? avgNow - avgPrev : null;
+    let diffCls = "flat", diffTxt = "—";
+    if (d != null) {
+      if (Math.abs(d) < 0.005) { diffCls = "flat"; diffTxt = "0.00"; }
+      else if (d > 0) { diffCls = "up"; diffTxt = "+" + d.toFixed(2); }
+      else { diffCls = "down"; diffTxt = d.toFixed(2); }
+    }
+    let volCls = "flat", volTxt = "—";
+    if (d != null && avgPrev != null && avgPrev !== 0) {
+      const vol = (d / avgPrev) * 100;
+      if (Math.abs(vol) < 0.005) { volCls = "flat"; volTxt = "0.00%"; }
+      else if (vol > 0) { volCls = "up"; volTxt = "+" + vol.toFixed(2) + "%"; }
+      else { volCls = "down"; volTxt = vol.toFixed(2) + "%"; }
+    }
+    const div = document.createElement("div");
+    div.className = "ticker-item";
+    div.innerHTML = `
+      <div class="ticker-name">全国 · ${f}（均价）</div>
+      <div class="ticker-price">
+        ${avgNow == null ? "—" : avgNow.toFixed(2)}
+        <span class="ticker-diff ${diffCls}">${diffTxt}</span>
+      </div>
+      <div class="ticker-vol ${volCls}">波动率 ${volTxt}</div>`;
+    ticker.appendChild(div);
+  }
+
+  document.getElementById("ovTime").textContent = `更新时间：${items[0].row.date}`;
+  document.getElementById("overviewCard").style.display = "";
+}
+
+// ==================== 走势图 ====================
+function renderChart() {
+  const p = currentProvince;
+  let xAxisData = [], series = [], title = "", rangeText = "";
+  const clean = v => (v == null || v < 3) ? null : v;
+
+  if (p) {
+    const rows = (DB[p] || []).slice().reverse();
+    xAxisData = rows.map(r => r.date);
+    series = FUELS.map(f => ({
+      name: f, type: "line", smooth: true, symbol: "circle", symbolSize: 6,
+      itemStyle: { color: COLORS[f] }, lineStyle: { width: 2 },
+      data: rows.map(r => clean(r[f]))
+    }));
+    title = `${p}油价走势图`;
+    if (rows.length) rangeText = `区间：${rows[0].date} ~ ${rows[rows.length-1].date} · 共 ${rows.length} 期`;
+  } else {
+    const byDate = {};
+    for (const p2 of provinceList()) {
+      for (const r of DB[p2]) {
+        if (!byDate[r.date]) byDate[r.date] = { sum: {}, cnt: {} };
+        FUELS.forEach(f => {
+          const v = clean(r[f]);
+          if (v != null) {
+            byDate[r.date].sum[f] = (byDate[r.date].sum[f] || 0) + v;
+            byDate[r.date].cnt[f] = (byDate[r.date].cnt[f] || 0) + 1;
+          }
+        });
+      }
+    }
+    const dates = Object.keys(byDate).sort();
+    xAxisData = dates;
+    series = FUELS.map(f => ({
+      name: f, type: "line", smooth: true, symbol: "circle", symbolSize: 5,
+      itemStyle: { color: COLORS[f] }, lineStyle: { width: 2 },
+      data: dates.map(d => {
+        const cnt = byDate[d].cnt[f] || 0;
+        return cnt ? +(byDate[d].sum[f] / cnt).toFixed(3) : null;
+      })
+    }));
+    title = "全国油价走势图（各省均价）";
+    if (dates.length) rangeText = `区间：${dates[0]} ~ ${dates[dates.length-1]} · 共 ${dates.length} 期`;
+  }
+
+  document.getElementById("chartTitle").textContent = title;
+  document.getElementById("chartRange").textContent = rangeText;
+
+  if (!chart) chart = echarts.init(document.getElementById("chart"));
+  chart.setOption({
+    tooltip: { trigger: "axis", valueFormatter: v => v == null ? "—" : v.toFixed(2) },
+    legend: { top: 0, data: FUELS },
+    grid: { left: 55, right: 30, top: 50, bottom: 80 },
+    xAxis: { type: "category", data: xAxisData, axisLabel: { rotate: 45, fontSize: 11 } },
+    yAxis: { type: "value", name: "价格（元/升）", min: 5, max: 12,
+             axisLabel: { formatter: v => v.toFixed(2) } },
+    series
+  }, true);
+  chart.resize();
+}
+
+// ==================== 查询 ====================
+function search() {
+  historyMode = false;
+  updateHistoryBtn();
+
+  const p = currentProvince;
+  const d = document.getElementById("date").value || todayStr();
+  const hint = document.getElementById("hint");
+  hint.classList.remove("warn");
+
+  if (d < MIN_DATE) {
+    hint.textContent = `⚠ 历史数据仅从 ${MIN_DATE} 开始，无法查询更早日期`;
+    hint.classList.add("warn");
+    document.getElementById("result").innerHTML =
+      `<div class="loading">所选日期 ${d} 早于最早数据 ${MIN_DATE}，无法查询</div>`;
+    return;
+  }
+
+  if (p) {
+    const row = findPrice(p, d);
+    hint.textContent = row
+      ? `已按 ${d} 查询，实际生效日期为 ${row.date}`
+      : `${p} 在 ${d} 之前没有数据`;
+    render([{province:p, row, usedFallback: row && row.date !== d}], "one");
+  } else {
+    const list = provinceList().map(prov => ({province: prov, row: findPrice(prov, d)}));
+    hint.textContent = `全国 ${d} 的油价（沿用最近一次调整）`;
+    render(list, "all");
+  }
+  renderChart();
+}
+
+function toggleHistory() {
+  historyMode = !historyMode;
+  updateHistoryBtn();
+  if (!historyMode) { search(); return; }
+
+  const p = currentProvince;
+  const hint = document.getElementById("hint");
+  hint.classList.remove("warn");
+
+  if (p) {
+    const rows = DB[p] || [];
+    hint.textContent = `${p} 全部历史数据（共 ${rows.length} 期，最早 ${MIN_DATE}）`;
+    render(rows.map(r => ({ province: p, row: r })), "all");
+  } else {
+    const allRows = [];
+    for (const prov of provinceList()) {
+      for (const r of DB[prov]) allRows.push({ province: prov, row: r });
+    }
+    allRows.sort((a, b) => b.row.date.localeCompare(a.row.date));
+    hint.textContent = `全国全部历史数据（共 ${allRows.length} 条）`;
+    render(allRows, "all");
+  }
+  renderChart();
+}
+
+function updateHistoryBtn() {
+  const btn = document.getElementById("historyBtn");
+  if (historyMode) {
+    btn.textContent = "收起历史数据";
+    btn.classList.add("on");
+  } else {
+    btn.textContent = "查询历史油价";
+    btn.classList.remove("on");
+  }
+}
+
+function showToday() {
+  historyMode = false;
+  updateHistoryBtn();
+  document.getElementById("date").value = todayStr();
+  search();
+}
+
+function reset() {
+  currentProvince = "";
+  renderProvinceChips();
+  document.getElementById("date").value = todayStr();
+  historyMode = false;
+  updateHistoryBtn();
+  search();
+}
+
+// 省份改变时自动查询
+function onProvinceChange() {
+  if (historyMode) {
+    toggleHistoryKeepMode();
+  } else {
+    search();
+  }
+}
+
+function toggleHistoryKeepMode() {
+  const p = currentProvince;
+  const hint = document.getElementById("hint");
+  if (p) {
+    const rows = DB[p] || [];
+    hint.textContent = `${p} 全部历史数据（共 ${rows.length} 期，最早 ${MIN_DATE}）`;
+    render(rows.map(r => ({ province: p, row: r })), "all");
+  } else {
+    const allRows = [];
+    for (const prov of provinceList()) {
+      for (const r of DB[prov]) allRows.push({ province: prov, row: r });
+    }
+    allRows.sort((a, b) => b.row.date.localeCompare(a.row.date));
+    hint.textContent = `全国全部历史数据（共 ${allRows.length} 条）`;
+    render(allRows, "all");
+  }
+  renderChart();
+}
+
+function renderCountdown() {
+  const meta = DB._meta;
+  if (!meta || !meta.next_adjust) return;
+  const el = document.getElementById("countdown");
+  el.style.display = "";
+  const d = meta.days_left;
+  el.innerHTML = d === 0
+    ? `今天就是油价调整日（${meta.next_adjust}）`
+    : `距离下一次油价调整还剩 <b>${d}</b> 天（${meta.next_adjust}）`;
+}
+
+async function init() {
+  const inline = document.getElementById("data-json");
+  if (inline) DB = JSON.parse(inline.textContent);
+  else {
+    try { const res = await fetch("data.json?_=" + Date.now()); DB = await res.json(); }
+    catch (e) {
+      document.getElementById("result").innerHTML =
+        '<div class="loading">读取 data.json 失败，请用本地服务器打开</div>';
+      return;
+    }
+  }
+
+  document.getElementById("date").value = todayStr();
+  document.getElementById("date").min = MIN_DATE;
+
+  renderProvinceChips();
+  renderCountdown();
+  renderOverview();
+  showToday();
+}
+
+init();
+window.addEventListener("resize", () => chart && chart.resize());
+</script>
+<script id="data-json" type="application/json">{"你的数据保持不变，保留原来的完整 JSON"}</script>
+</body>
+</html>
