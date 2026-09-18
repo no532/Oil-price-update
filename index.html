@@ -31,7 +31,7 @@
 
 <!-- ============ 国内页 ============ -->
 <div class="pane active" id="pane-domestic">
-  <iframe id="frame-domestic" src="国内/domestic.html" style="height:calc(100vh - 52px);"></iframe>
+  <iframe id="frame-domestic" src="domestic.html" style="height:calc(100vh - 52px);"></iframe>
 </div>
 
 <!-- ============ 国际原油页 ============ -->
@@ -103,7 +103,7 @@ let intlChart = null;
 // 表格 + 走势图：都读 oil_minline.json（新浪分时）
 async function loadMinline() {
   try {
-    const res = await fetch('国际/oil_minline.json?_=' + Date.now());
+    const res = await fetch('oil_minline.json?_=' + Date.now());
     const data = await res.json();
     renderTable(data);
     renderChart(data);
@@ -117,7 +117,7 @@ async function loadMinline() {
 // 其他能源品种：读 oil_data.json（66laji）
 async function loadSnapshot() {
   try {
-    const res = await fetch('国际/oil_data.json?_=' + Date.now());
+    const res = await fetch('oil_data.json?_=' + Date.now());
     const data = await res.json();
     renderOthers(data);
   } catch (e) {
