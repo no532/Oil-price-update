@@ -6,8 +6,9 @@ import pandas as pd
 from datetime import date as _date, datetime, timedelta
 
 # ===================== 配置区 =====================
-HISTORY_FILE = r"C:\Users\31007384\Desktop\新建文件夹\各省历史油价数据.xlsx"
-LAST_FETCH_FILE = os.path.join(os.path.dirname(HISTORY_FILE), "last_fetch.txt")
+BASE = os.path.dirname(os.path.abspath(__file__))
+HISTORY_FILE = os.path.join(BASE, "各省历史油价数据.xlsx")
+LAST_FETCH_FILE = os.path.join(BASE, "last_fetch.txt")
 
 # 城市列表：（Excel sheet 名，城市中文名，icauto 行政区划代码）
 CITIES = [
