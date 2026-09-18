@@ -5,7 +5,7 @@ import time
 import datetime
 
 OUT_FILE = "oil_minline.json"
-SNAPSHOT_FILE = "oil_data.json"   # 66laji 的快照，用来补昨收/最高/最低
+SNAPSHOT_FILE = "oil_data.json"
 
 SYMBOLS = {
     "CL":  "WTI美国",
