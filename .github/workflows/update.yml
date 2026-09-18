@@ -1,0 +1,41 @@
+name: Update Oil Prices
+
+on:
+  schedule:
+    # 每 5 分钟跑一次（UTC，实际可能有延迟）
+    - cron: '*/5 * * * *'
+  workflow_dispatch:   # 允许在网页上手动点按钮触发
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install requests
+
+      - name: Run oil.py
+        run: python 国际/oil.py
+        continue-on-error: true    # 抓失败也不中断
+
+      - name: Run oil_chart.py
+        run: python 国际/oil_chart.py
+        continue-on-error: true
+
+      - name: Commit & push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add 国际/oil_data.json 国际/oil_minline.json
+          git diff --staged --quiet || git commit -m "auto update $(date -u +'%Y-%m-%d %H:%M:%S')"
+          git push
