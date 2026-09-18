@@ -84,7 +84,7 @@ def get_next_adjust():
 def export():
     result = {}
     # ★ 省级 + 17 个独立定价市
-        for p in PROVINCES:
+    for p in PROVINCES:
         try:
             df = pd.read_excel(HISTORY_FILE, sheet_name=p)
         except Exception:
