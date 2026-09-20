@@ -33,20 +33,28 @@ def fetch_minline(symbol):
 
     points = []
     open_price = None
+    base_date = None       # 当前日期
+    prev_t = None          # 上一个时间点
+
     for idx, row in enumerate(rows):
         try:
             if len(row) >= 10:
-                t = row[4]            # "06:00"
+                t = row[4]
                 p = float(row[5])
-                full_date = row[0]    # "2026-09-18"
+                base_date = row[0]          # 第一条带日期
                 if idx == 0:
                     open_price = float(row[1])
             else:
                 t = row[0]
                 p = float(row[1])
-                full_date = None
-            # 存成 [时间, 价格, 日期]  → 日期可能为 None
-            points.append([t, p, full_date])
+
+            # 时间倒回去 → 跨日，日期 +1 天
+            if prev_t is not None and t < prev_t and base_date:
+                dt = datetime.datetime.strptime(base_date, "%Y-%m-%d") + datetime.timedelta(days=1)
+                base_date = dt.strftime("%Y-%m-%d")
+
+            points.append([t, p, base_date])
+            prev_t = t
         except (ValueError, IndexError):
             continue
 
