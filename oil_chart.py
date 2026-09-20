@@ -36,14 +36,17 @@ def fetch_minline(symbol):
     for idx, row in enumerate(rows):
         try:
             if len(row) >= 10:
-                t = row[4]
+                t = row[4]            # "06:00"
                 p = float(row[5])
+                full_date = row[0]    # "2026-09-18"
                 if idx == 0:
-                    open_price = float(row[1])   # 第一条的第2个字段 = 今开
+                    open_price = float(row[1])
             else:
                 t = row[0]
                 p = float(row[1])
-            points.append([t, p])
+                full_date = None
+            # 存成 [时间, 价格, 日期]  → 日期可能为 None
+            points.append([t, p, full_date])
         except (ValueError, IndexError):
             continue
 
