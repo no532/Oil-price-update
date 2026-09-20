@@ -266,11 +266,14 @@ function renderChart(data) {
       data: xData,
       axisLabel: {
         fontSize: 11,
-        interval: Math.floor(xData.length / 12),
+        interval: function (index, value) {
+          if (crossDayIndex[index]) return true;
+          return index % Math.ceil(xData.length / 12) === 0;
+        },
         formatter: function (value, index) {
           if (crossDayIndex[index]) {
             const d = dateMap[value];
-            return d ? (value + '\n' + d.slice(5)) : value;  // 只显示 MM-DD
+            return d ? (value + '\n' + d.slice(5)) : value;
           }
           return value;
         }
