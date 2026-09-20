@@ -220,26 +220,25 @@ function renderChart(data) {
     if (t.length > xData.length) xData = t;
   });
 
-  // 从最长的线里取日期（p[2] 是你新加的日期字段）
+  // 取最长的那条线，用来参考日期
   const refName = names.reduce((a, b) =>
     (data.series[a] || []).length >= (data.series[b] || []).length ? a : b
   );
   const refSeries = data.series[refName] || [];
 
-  const dateMap = {};      // 时间点 -> 日期
-  let lastDate = null;
+  // 从 refSeries 里取"每个时间点对应的日期"
+  const dateMap = {};
   refSeries.forEach(p => {
     const t = p[0];
-    const d = p[2];        // 日期字段，可能是 null
-    if (d) lastDate = d;
-    if (lastDate && !dateMap[t]) dateMap[t] = lastDate;
+    const d = p[2];
+    if (t && d) dateMap[t] = d;
   });
 
   const series = names.map(name => {
     const map = {};
     (data.series[name] || []).forEach(p => { map[p[0]] = p[1]; });
     return {
-      name,
+      name: name,
       type: 'line',
       smooth: true,
       symbol: 'none',
@@ -250,10 +249,16 @@ function renderChart(data) {
     };
   });
 
-  // 找跨日点：时间比上一个点小
+  // 找"日期变化"的点
   const crossDayIndex = {};
-  for (let i = 1; i < xData.length; i++) {
-    if (xData[i] < xData[i - 1]) crossDayIndex[i] = true;
+  for (let i = 1; i < refSeries.length; i++) {
+    const d0 = refSeries[i - 1][2];
+    const d1 = refSeries[i][2];
+    if (d0 && d1 && d0 !== d1) {
+      const t = refSeries[i][0];
+      const idx = xData.indexOf(t);
+      if (idx >= 0) crossDayIndex[idx] = true;
+    }
   }
   if (xData.length) crossDayIndex[0] = true;
 
@@ -280,7 +285,7 @@ function renderChart(data) {
       }
     },
     yAxis: { type: 'value', name: '美元/桶', scale: true },
-    series
+    series: series
   }, true);
   intlChart.resize();
 }
