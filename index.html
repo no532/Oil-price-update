@@ -185,15 +185,22 @@ function renderOthers(data) {
   const others = data.items.filter(i => !exclude.includes(i.name));
 
   for (const it of others) {
-    const pct = parseFloat(it.change_percent);
+    const pct = parseFloat(it.change_percent);   // "+0.89%" → 0.89
     const up = pct > 0, down = pct < 0;
     const color = up ? '#e74c3c' : down ? '#27ae60' : '#8492a6';
-    const sign = up ? '+' : '';
+
+    // ★ 直接拼接原字段，不要再自己加 +
+    // 但接口有的字段没有 + 号，需要判断
+    const chgText = it.change || '';
+    const pctText = it.change_percent || '';
+    const chgDisplay = chgText.startsWith('+') || chgText.startsWith('-') ? chgText : (up ? '+' + chgText : chgText);
+    const pctDisplay = pctText.startsWith('+') || pctText.startsWith('-') ? pctText : (up ? '+' + pctText : pctText);
+
     box.innerHTML += `
       <div style="background:#fff;border:1px solid #e4e7ed;border-radius:8px;padding:12px 14px;">
         <div style="font-size:13px;color:#5a6b7b;margin-bottom:6px;">${it.name}</div>
         <div style="font-size:15px;font-weight:600;color:#1f2d3d;">${it.price}</div>
-        <div style="font-size:13px;font-weight:600;color:${color};margin-top:4px;">${sign}${it.change}（${sign}${it.change_percent}）</div>
+        <div style="font-size:13px;font-weight:600;color:${color};margin-top:4px;">${chgDisplay}（${pctDisplay}）</div>
       </div>`;
   }
 }
@@ -213,6 +220,21 @@ function renderChart(data) {
     if (t.length > xData.length) xData = t;
   });
 
+  // 从最长的线里取日期（p[2] 是你新加的日期字段）
+  const refName = names.reduce((a, b) =>
+    (data.series[a] || []).length >= (data.series[b] || []).length ? a : b
+  );
+  const refSeries = data.series[refName] || [];
+
+  const dateMap = {};      // 时间点 -> 日期
+  let lastDate = null;
+  refSeries.forEach(p => {
+    const t = p[0];
+    const d = p[2];        // 日期字段，可能是 null
+    if (d) lastDate = d;
+    if (lastDate && !dateMap[t]) dateMap[t] = lastDate;
+  });
+
   const series = names.map(name => {
     const map = {};
     (data.series[name] || []).forEach(p => { map[p[0]] = p[1]; });
@@ -228,13 +250,31 @@ function renderChart(data) {
     };
   });
 
+  // 找跨日点：时间比上一个点小
+  const crossDayIndex = {};
+  for (let i = 1; i < xData.length; i++) {
+    if (xData[i] < xData[i - 1]) crossDayIndex[i] = true;
+  }
+  if (xData.length) crossDayIndex[0] = true;
+
   intlChart.setOption({
     tooltip: { trigger: 'axis' },
     legend: { top: 0, data: names },
-    grid: { left: 60, right: 30, top: 50, bottom: 60 },
+    grid: { left: 60, right: 30, top: 50, bottom: 80 },
     xAxis: {
-      type: 'category', data: xData,
-      axisLabel: { fontSize: 11, interval: Math.floor(xData.length / 12) }
+      type: 'category',
+      data: xData,
+      axisLabel: {
+        fontSize: 11,
+        interval: Math.floor(xData.length / 12),
+        formatter: function (value, index) {
+          if (crossDayIndex[index]) {
+            const d = dateMap[value];
+            return d ? (value + '\n' + d.slice(5)) : value;  // 只显示 MM-DD
+          }
+          return value;
+        }
+      }
     },
     yAxis: { type: 'value', name: '美元/桶', scale: true },
     series
