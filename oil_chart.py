@@ -68,8 +68,10 @@ def load_snapshot():
 
 def main():
     snap = load_snapshot()
+    # 北京时间 = UTC + 8
+    bj_now = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
     result = {
-        "update_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "update_time": bj_now.strftime("%Y-%m-%d %H:%M:%S"),
         "series": {},
         "meta": {},
     }
