@@ -2,9 +2,8 @@ name: Update Oil Prices
 
 on:
   schedule:
-    # 每 5 分钟跑一次（UTC，实际可能有延迟）
-    - cron: '*/5 * * * *'
-  workflow_dispatch:   # 允许在网页上手动点按钮触发
+    - cron: '*/30 * * * *'      # 每 30 分钟（5 分钟太频繁易被限流）
+  workflow_dispatch:
 
 jobs:
   update:
@@ -22,20 +21,27 @@ jobs:
           python-version: '3.11'
 
       - name: Install deps
-        run: pip install requests
+        run: pip install requests pandas openpyxl
 
-      - name: Run oil.py
+      - name: Run oil.py（国际快照）
         run: python oil.py
-        continue-on-error: true    # 抓失败也不中断
+        continue-on-error: true
+        timeout-minutes: 5
 
-      - name: Run oil_chart.py
+      - name: Run oil_chart.py（国际分时）
         run: python oil_chart.py
         continue-on-error: true
+        timeout-minutes: 5
+
+      - name: Run 测试.py（国内油价）
+        run: python 测试.py
+        continue-on-error: true
+        timeout-minutes: 10
 
       - name: Commit & push
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
-          git add oil_data.json oil_minline.json
+          git add -A
           git diff --staged --quiet || git commit -m "auto update $(date -u +'%Y-%m-%d %H:%M:%S')"
           git push
