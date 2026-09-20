@@ -213,11 +213,30 @@ function renderChart(data) {
   const names = Object.keys(data.series);
   const colors = { 'WTI美国': '#409eff', '布伦特': '#e6a23c' };
 
+  // 时间转换：纽约 → 北京（+12 小时）
+  function toBeijing(t) {
+    // t 是 "06:00" 这种
+    const parts = t.split(':');
+    if (parts.length < 2) return t;
+    let h = parseInt(parts[0], 10) + 12;
+    const m = parts[1];
+    let nextDay = false;
+    if (h >= 24) { h -= 24; nextDay = true; }
+    const hh = String(h).padStart(2, '0');
+    return { time: hh + ':' + m, nextDay: nextDay };
+  }
+
   // 取最长那条线的时间轴
-  let xData = [];
+  let rawXData = [];
   names.forEach(n => {
     const t = (data.series[n] || []).map(p => p[0]);
-    if (t.length > xData.length) xData = t;
+    if (t.length > rawXData.length) rawXData = t;
+  });
+
+  // 转成北京时间显示
+  const xData = rawXData.map(t => {
+    const r = toBeijing(t);
+    return typeof r === 'string' ? r : r.time;
   });
 
   // 取最长的那条线，用来参考日期
@@ -226,12 +245,23 @@ function renderChart(data) {
   );
   const refSeries = data.series[refName] || [];
 
-  // 从 refSeries 里取"每个时间点对应的日期"
+  // 日期映射：北京时间点 → 原始日期
   const dateMap = {};
-  refSeries.forEach(p => {
+  refSeries.forEach((p, i) => {
     const t = p[0];
     const d = p[2];
-    if (t && d) dateMap[t] = d;
+    const bj = toBeijing(t);
+    const bjTime = typeof bj === 'string' ? bj : bj.time;
+    const bjNext = typeof bj === 'string' ? false : bj.nextDay;
+
+    let dateStr = d;
+    // 如果北京时间跨到了第二天，日期 +1
+    if (d && bjNext) {
+      const dt = new Date(d);
+      dt.setDate(dt.getDate() + 1);
+      dateStr = dt.toISOString().slice(0, 10);
+    }
+    if (bjTime && dateStr) dateMap[bjTime] = dateStr;
   });
 
   const series = names.map(name => {
@@ -245,21 +275,20 @@ function renderChart(data) {
       connectNulls: false,
       lineStyle: { width: 1.5, color: colors[name] || '#999' },
       itemStyle: { color: colors[name] || '#999' },
-      data: xData.map(t => (t in map) ? map[t] : null)
+      data: rawXData.map(t => (t in map) ? map[t] : null)
     };
   });
 
-  // 找"日期变化"的点
+  // 找"日期变化"的点（按北京时间）
   const crossDayIndex = {};
-  for (let i = 1; i < refSeries.length; i++) {
-    const d0 = refSeries[i - 1][2];
-    const d1 = refSeries[i][2];
-    if (d0 && d1 && d0 !== d1) {
-      const t = refSeries[i][0];
-      const idx = xData.indexOf(t);
-      if (idx >= 0) crossDayIndex[idx] = true;
+  let lastDate = null;
+  xData.forEach((bjTime, idx) => {
+    const d = dateMap[bjTime];
+    if (d && lastDate && d !== lastDate) {
+      crossDayIndex[idx] = true;
     }
-  }
+    if (d) lastDate = d;
+  });
   if (xData.length) crossDayIndex[0] = true;
 
   intlChart.setOption({
