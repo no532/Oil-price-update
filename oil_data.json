@@ -1,127 +1,127 @@
 {
-  "update_time": "2026-09-21 10:42:02",
+  "update_time": "2026-09-21 11:15:25",
   "count": 11,
   "items": [
     {
-      "fetch_time": "2026-09-21 10:42:02",
+      "fetch_time": "2026-09-21 11:15:25",
       "name": "布伦特原油",
-      "price": "97.78美元/桶",
-      "change": "-1.51",
-      "change_percent": "-1.52%",
+      "price": "97.63美元/桶",
+      "change": "-1.66",
+      "change_percent": "-1.67%",
       "prev_close": "99.29",
       "high": "100.22",
       "low": "96.97",
-      "update_time": "2026-09-21 13:15:44"
+      "update_time": "2026-09-21 19:01:38"
     },
     {
-      "fetch_time": "2026-09-21 10:42:02",
+      "fetch_time": "2026-09-21 11:15:25",
       "name": "WTI纽约原油",
-      "price": "94.34美元/桶",
-      "change": "-1.74",
-      "change_percent": "-1.81%",
+      "price": "92.91美元/桶",
+      "change": "-3.17",
+      "change_percent": "-3.3%",
       "prev_close": "96.08",
       "high": "97.22",
-      "low": "93.58",
-      "update_time": "2026-09-21 13:15:44"
+      "low": "92.7",
+      "update_time": "2026-09-21 19:01:38"
     },
     {
-      "fetch_time": "2026-09-21 10:42:02",
+      "fetch_time": "2026-09-21 11:15:25",
       "name": "布伦特柴油",
-      "price": "1413美元/吨",
-      "change": "-20.25",
-      "change_percent": "-1.41%",
+      "price": "1386美元/吨",
+      "change": "-47.25",
+      "change_percent": "-3.3%",
       "prev_close": "1433.25",
       "high": "1449",
-      "low": "1407.25",
-      "update_time": "2026-09-21 13:15:44"
+      "low": "1382",
+      "update_time": "2026-09-21 19:01:38"
     },
     {
-      "fetch_time": "2026-09-21 10:42:02",
+      "fetch_time": "2026-09-21 11:15:25",
       "name": "美燃料油",
-      "price": "4.8269美元/加仑",
-      "change": "-0.0175",
-      "change_percent": "-0.36%",
+      "price": "4.6961美元/加仑",
+      "change": "-0.1483",
+      "change_percent": "-3.06%",
       "prev_close": "4.8444",
       "high": "4.9615",
-      "low": "4.8026",
-      "update_time": "2026-09-21 13:15:44"
+      "low": "4.6795",
+      "update_time": "2026-09-21 19:01:38"
     },
     {
-      "fetch_time": "2026-09-21 10:42:02",
+      "fetch_time": "2026-09-21 11:15:25",
       "name": "美天然气",
-      "price": "2.887美元/mmbtu",
-      "change": "-0.025",
-      "change_percent": "-0.86%",
+      "price": "2.865美元/mmbtu",
+      "change": "-0.047",
+      "change_percent": "-1.61%",
       "prev_close": "2.912",
       "high": "2.906",
-      "low": "2.867",
-      "update_time": "2026-09-21 13:15:44"
+      "low": "2.863",
+      "update_time": "2026-09-21 19:01:38"
     },
     {
-      "fetch_time": "2026-09-21 10:42:02",
+      "fetch_time": "2026-09-21 11:15:25",
       "name": "美轻质原油",
-      "price": "98.15美元/桶",
-      "change": "-2.15",
-      "change_percent": "-2.14%",
-      "prev_close": "100.3",
-      "high": "101.925",
-      "low": "97.8",
-      "update_time": "2026-09-21 13:15:44"
+      "price": "92.95美元/桶",
+      "change": "-3.125",
+      "change_percent": "-3.25%",
+      "prev_close": "96.075",
+      "high": "97",
+      "low": "92.65",
+      "update_time": "2026-09-21 19:01:38"
     },
     {
-      "fetch_time": "2026-09-21 10:42:02",
+      "fetch_time": "2026-09-21 11:15:25",
       "name": "美无铅汽油",
-      "price": "3.2083美元/加仑",
-      "change": "-0.0472",
-      "change_percent": "-1.45%",
+      "price": "3.1596美元/加仑",
+      "change": "-0.0959",
+      "change_percent": "-2.95%",
       "prev_close": "3.2555",
       "high": "3.2812",
-      "low": "3.1956",
-      "update_time": "2026-09-21 13:15:44"
+      "low": "3.1553",
+      "update_time": "2026-09-21 19:01:38"
     },
     {
-      "fetch_time": "2026-09-21 10:42:02",
+      "fetch_time": "2026-09-21 11:15:25",
       "name": "上海燃料油",
-      "price": "4166元（人民币）/吨",
-      "change": "-93",
-      "change_percent": "-2.18%",
+      "price": "4213元（人民币）/吨",
+      "change": "-46",
+      "change_percent": "-1.08%",
       "prev_close": "4259",
       "high": "4333",
       "low": "4112",
-      "update_time": "2026-09-21 13:15:44"
+      "update_time": "2026-09-21 19:01:38"
     },
     {
-      "fetch_time": "2026-09-21 10:42:02",
+      "fetch_time": "2026-09-21 11:15:25",
       "name": "低硫燃料油",
-      "price": "5433元（人民币）/吨",
-      "change": "-82",
-      "change_percent": "-1.49%",
+      "price": "5429元（人民币）/吨",
+      "change": "-86",
+      "change_percent": "-1.56%",
       "prev_close": "5515",
       "high": "5629",
       "low": "5325",
-      "update_time": "2026-09-21 13:15:44"
+      "update_time": "2026-09-21 19:01:38"
     },
     {
-      "fetch_time": "2026-09-21 10:42:02",
+      "fetch_time": "2026-09-21 11:15:25",
       "name": "液化石油气",
-      "price": "6529元（人民币）/吨",
-      "change": "-125",
-      "change_percent": "-1.88%",
+      "price": "6542元（人民币）/吨",
+      "change": "-112",
+      "change_percent": "-1.68%",
       "prev_close": "6654",
       "high": "6692",
       "low": "6455",
-      "update_time": "2026-09-21 13:15:44"
+      "update_time": "2026-09-21 19:01:38"
     },
     {
-      "fetch_time": "2026-09-21 10:42:02",
+      "fetch_time": "2026-09-21 11:15:25",
       "name": "上海原油",
-      "price": "707元（人民币）/桶",
-      "change": "-47.4",
-      "change_percent": "-6.28%",
+      "price": "722.5元（人民币）/桶",
+      "change": "-31.9",
+      "change_percent": "-4.23%",
       "prev_close": "754.4",
       "high": "757.2",
       "low": "700.9",
-      "update_time": "2026-09-21 13:15:44"
+      "update_time": "2026-09-21 19:01:38"
     }
   ]
 }
