@@ -8,7 +8,7 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 HISTORY_FILE  = os.path.join(BASE, "各省历史油价数据.xlsx")
 CALENDAR_FILE = os.path.join(BASE, "油价调整日历.xlsx")
 OUTPUT_JSON   = os.path.join(BASE, "data.json")
-HTML_FILE     = os.path.join(BASE, "index.html")
+HTML_FILE     = os.path.join(BASE, "domestic.html")
 
 # 与 测试.py 保持一致：31 个省级行政区
 PROVINCES = [
