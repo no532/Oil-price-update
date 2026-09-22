@@ -24,9 +24,25 @@ jobs:
       - name: Install deps
         run: pip install -r requirements.txt
 
-      - name: Run update
-        run: python "测试.py"
+      # ---------- 国内 ----------
+      - name: 国内 - 抓全国油价
+        working-directory: 国内
+        run: python 测试.py
 
+      - name: 国内 - 导出 data.json
+        working-directory: 国内
+        run: python export_json.py
+
+      # ---------- 国际 ----------
+      - name: 国际 - 抓新浪分时 + 更新 Excel
+        working-directory: 国际
+        run: python oil_chart.py
+
+      - name: 国际 - 导出 oil_monthly.json
+        working-directory: 国际
+        run: python oil_monthly.py
+
+      # ---------- 提交 ----------
       - name: Commit changes
         run: |
           git config user.name "github-actions"
