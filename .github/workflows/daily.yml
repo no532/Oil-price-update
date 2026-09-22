@@ -2,8 +2,12 @@ name: Daily Oil Price Update
 
 on:
   schedule:
-    # 北京时间每天 9:00 = UTC 01:00
+    # 北京时间 9:00 = UTC 01:00
     - cron: '0 1 * * *'
+    # 北京时间 14:00 = UTC 06:00
+    - cron: '0 6 * * *'
+    # 北京时间 21:00 = UTC 13:00
+    - cron: '0 13 * * *'
   workflow_dispatch:
 
 jobs:
@@ -24,29 +28,22 @@ jobs:
       - name: Install deps
         run: pip install -r requirements.txt
 
-      # ---------- 国内 ----------
-      - name: 国内 - 抓全国油价
+      - name: 国内 - 抓取 + 导出
         working-directory: 国内
         run: python 测试.py
 
-      - name: 国内 - 导出 data.json
-        working-directory: 国内
-        run: python export_json.py
-
-      # ---------- 国际 ----------
-      - name: 国际 - 抓新浪分时 + 更新 Excel
+      - name: 国际 - 抓分时 + 更新 Excel
         working-directory: 国际
         run: python oil_chart.py
 
-      - name: 国际 - 导出 oil_monthly.json
+      - name: 国际 - 导出 JSON
         working-directory: 国际
         run: python oil_monthly.py
 
-      # ---------- 提交 ----------
       - name: Commit changes
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add -A
-          git diff --staged --quiet || git commit -m "auto update $(date -u +%Y-%m-%d)"
+          git diff --staged --quiet || git commit -m "auto update $(date -u +%Y-%m-%d\ %H:%M)"
           git push
