@@ -47,8 +47,9 @@ def load_history():
 
 def export_json(df):
     result = {
-        "update_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "update_time": (datetime.datetime.utcnow() + datetime.timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S"),
         "series": {},
+        "dailyDetail": {},
     }
     col_map = {
         COL_WTI: "WTI纽约原油",
