@@ -79,7 +79,6 @@
       <label>查看日期：</label>
       <input type="date" id="datePicker">
       <button id="resetDateBtn">重置（最新）</button>
-      <span id="dateHint" style="font-size:12px;color:#b0b8c1;"></span>
     </div>
 
     <table style="width:100%;border-collapse:collapse;background:#fff;font-size:15px;">
@@ -183,7 +182,6 @@ async function loadMonthly() {
 // ============== 日期筛选器 ==============
 function setupDatePickerRange() {
   const input = document.getElementById('datePicker');
-  const hint = document.getElementById('dateHint');
   if (!monthlyData || !monthlyData.series) return;
 
   let minD = null, maxD = null;
@@ -343,6 +341,7 @@ function renderTable() {
 function fmtDateMD(d) { return d ? d.replace(/-/g, '/') : ''; }
 
 // ============== 图 1：24 小时 ==============
+// ============== 图 1：24 小时 ==============
 function renderChart24h() {
   const data = minlineData;
   if (!data || !data.series) {
@@ -392,11 +391,44 @@ function renderChart24h() {
     };
   });
 
-  const lastDateStr = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
+  // 标题日期用 oil_minline.json 的 update_time
+  let lastDateStr;
+  if (data.update_time) {
+    const d = data.update_time.slice(0, 10);
+    lastDateStr = d.replace(/-/g, '/');
+  } else {
+    lastDateStr = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
+  }
   document.getElementById('chartTitle').textContent =
     `${lastDateStr} 的原油价格图（24小时走势）`;
 
   renderDeltaRow('h24');
+
+  priceChart.setOption({
+    tooltip: {
+      trigger: 'axis',
+      formatter: function (params) {
+        let rawTime = params[0].axisValue;
+        const m = rawTime.match(/\d{2}:\d{2}$/);
+        if (m) rawTime = m[0];
+        let html = `时间：${rawTime}（北京时间）<br/>`;
+        params.forEach(p => {
+          if (p.value != null) html += `${p.marker}${p.seriesName}：${p.value.toFixed(2)} 美元/桶<br/>`;
+        });
+        return html;
+      }
+    },
+    legend: { top: 0, data: names },
+    grid: { left: 60, right: 30, top: 40, bottom: 60 },
+    xAxis: {
+      type: 'category', data: xLabels,
+      axisLabel: { fontSize: 11, interval: Math.max(0, Math.floor(xLabels.length / 12) - 1) }
+    },
+    yAxis: { type: 'value', name: '美元/桶', scale: true },
+    series
+  }, true);
+  priceChart.resize();
+}
 
   priceChart.setOption({
     tooltip: {
