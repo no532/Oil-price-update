@@ -2,10 +2,10 @@ name: Daily Oil Price Update
 
 on:
   schedule:
-    # 北京时间 9:00 = UTC 01:00
-    - cron: '0 1 * * *'
-    # 北京时间 14:00 = UTC 06:00
-    - cron: '0 6 * * *'
+    # 北京时间 8:00 = UTC 00:00
+    - cron: '0 0 * * *'
+    # 北京时间 13:00 = UTC 05:00
+    - cron: '0 5 * * *'
     # 北京时间 21:00 = UTC 13:00
     - cron: '0 13 * * *'
   workflow_dispatch:
