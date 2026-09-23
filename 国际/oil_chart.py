@@ -240,7 +240,7 @@ def upsert_sheet2(df2, trade_day_str, day_data_map):
 # ---------- 主流程 ----------
 def main():
     result = {
-        "update_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "update_time": (datetime.datetime.utcnow() + datetime.timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S"),
         "series": {},
         "meta": {},
     }
