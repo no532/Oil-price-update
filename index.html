@@ -429,32 +429,6 @@ function renderChart24h() {
   priceChart.resize();
 }
 
-  priceChart.setOption({
-    tooltip: {
-      trigger: 'axis',
-      formatter: function (params) {
-        let rawTime = params[0].axisValue;
-        const m = rawTime.match(/\d{2}:\d{2}$/);
-        if (m) rawTime = m[0];
-        let html = `时间：${rawTime}（北京时间）<br/>`;
-        params.forEach(p => {
-          if (p.value != null) html += `${p.marker}${p.seriesName}：${p.value.toFixed(2)} 美元/桶<br/>`;
-        });
-        return html;
-      }
-    },
-    legend: { top: 0, data: names },
-    grid: { left: 60, right: 30, top: 40, bottom: 60 },
-    xAxis: {
-      type: 'category', data: xLabels,
-      axisLabel: { fontSize: 11, interval: Math.max(0, Math.floor(xLabels.length / 12) - 1) }
-    },
-    yAxis: { type: 'value', name: '美元/桶', scale: true },
-    series
-  }, true);
-  priceChart.resize();
-}
-
 // ============== 图 2：日价格 ==============
 function renderDayChart() {
   const data = monthlyData;
