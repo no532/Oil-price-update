@@ -406,6 +406,10 @@ function calcChangesForDate(csvDateStr) {
   const targetDate = parseDateStr(csvDateStr);
   if (!targetDate) return result;
 
+  // ★ lyDate 提到最外层，内外都能用
+  const lyDate = new Date(targetDate);
+  lyDate.setFullYear(lyDate.getFullYear() - 1);
+
   const sortedDates = Object.keys(historyByDate).sort((a, b) => {
     const da = parseDateStr(a), db = parseDateStr(b);
     return (da && db) ? da - db : 0;
@@ -419,6 +423,7 @@ function calcChangesForDate(csvDateStr) {
 
     const r = { prev: null, year_start: null, last_year: null };
 
+    // 较上期
     for (let i = idx - 1; i >= 0; i--) {
       const v = parseFloat(historyByDate[sortedDates[i]][col]);
       if (!isNaN(v) && Math.abs(v - todayVal) > 0.001) {
@@ -426,6 +431,7 @@ function calcChangesForDate(csvDateStr) {
         break;
       }
     }
+    // 较今年 1 月
     const year = targetDate.getFullYear();
     for (let i = 0; i < sortedDates.length; i++) {
       const d = parseDateStr(sortedDates[i]);
@@ -435,7 +441,7 @@ function calcChangesForDate(csvDateStr) {
         break;
       }
     }
-    const lyDate = new Date(targetDate); lyDate.setFullYear(lyDate.getFullYear() - 1);
+    // 较去年同期（用外层 lyDate）
     let best = null, bestDiff = Infinity;
     for (const k of sortedDates) {
       const d = parseDateStr(k);
@@ -450,7 +456,7 @@ function calcChangesForDate(csvDateStr) {
     result[brand] = r;
   }
 
-  // 平均
+  // 平均价波动率
   const avgOf = (dStr) => {
     const r = historyByDate[dStr];
     if (!r) return null;
@@ -497,27 +503,36 @@ async function renderAll() {
   document.getElementById('updateTime').textContent =
     '更新时间：' + data.update_time + '（数据日期：' + data.date + '）';
 
-  // 历史数据 + 索引
-  const hist = await loadHistory();
-  if (hist && hist.rows && hist.rows.length > 0) {
-    historyRows = hist.rows.slice();
-    historyRows.sort((a, b) => {
-      const da = parseDateStr(a['Date']), db = parseDateStr(b['Date']);
-      return (da && db) ? da - db : 0;
-    });
-    historyByDate = {};
-    historyRows.forEach(r => { if (r['Date']) historyByDate[r['Date']] = r; });
-    setupGlobalDateFilter();
+  try {
+    const hist = await loadHistory();
+    if (hist && hist.rows && hist.rows.length > 0) {
+      historyRows = hist.rows.slice();
+      historyRows.sort((a, b) => {
+        const da = parseDateStr(a['Date']), db = parseDateStr(b['Date']);
+        return (da && db) ? da - db : 0;
+      });
+      historyByDate = {};
+      historyRows.forEach(r => { if (r['Date']) historyByDate[r['Date']] = r; });
+      setupGlobalDateFilter();
+    }
+  } catch (e) {
+    console.error('loadHistory / setupGlobalDateFilter 失败', e);
   }
 
-  const view = getDataForDate(selectedDate);
+  let view = null;
+  try {
+    view = getDataForDate(selectedDate);
+  } catch (e) {
+    console.error('getDataForDate 失败', e);
+    view = { diesel: data.diesel || {}, changes: data.changes || {}, avg: data.avg_today, date: data.date };
+  }
 
-  renderFuelTable(data.open_data || {}, data.date, view);
-  renderAvgCard(view.avg, (view.changes && view.changes.__AVERAGE__) || {});
-  renderCards(view.diesel, view.changes || {});
-  renderDetailTable(view.diesel, view.changes || {});
-  renderBarChart(view.diesel);
-  renderLineChart();
+  try { renderFuelTable(data.open_data || {}, data.date, view); } catch (e) { console.error('renderFuelTable', e); }
+  try { renderAvgCard(view.avg, (view.changes && view.changes.__AVERAGE__) || {}); } catch (e) { console.error('renderAvgCard', e); }
+  try { renderCards(view.diesel, view.changes || {}); } catch (e) { console.error('renderCards', e); }
+  try { renderDetailTable(view.diesel, view.changes || {}); } catch (e) { console.error('renderDetailTable', e); }
+  try { renderBarChart(view.diesel); } catch (e) { console.error('renderBarChart', e); }
+  try { renderLineChart(); } catch (e) { console.error('renderLineChart', e); }
 }
 
 // ============== 全局日期筛选器 ==============
@@ -603,10 +618,7 @@ function renderFuelTable(openData, dateStr, view) {
   const dateEl = document.getElementById('fuelUpdateDate');
   tbody.innerHTML = '';
 
-  const retailChanges = (view && view.changes && view.changes.__RETAIL__) || {};
-  const dieselChange = retailChanges.__AVERAGE__ || view.changes?.__AVERAGE__ || {};
-
-  // 柴油行的零售价（从当前 view 里的柴油数据求平均，退回到 open_data）
+  // 柴油行零售价：从 view.diesel 求平均
   let dieselRetail = null;
   if (view && view.diesel) {
     const vals = BRANDS.map(b => view.diesel[b] && view.diesel[b].retail).filter(v => v != null);
@@ -617,19 +629,18 @@ function renderFuelTable(openData, dateStr, view) {
     if (vs.length) dieselRetail = vs[0];
   }
 
-  // 柴油行的波动率：如果是最新（今天），用 changes；如果是历史日期，用 view.changes
+  // 波动率
   let c1 = '<span class="flat">—</span>';
   let c2 = '<span class="flat">—</span>';
   let c3 = '<span class="flat">—</span>';
   if (view && view.isHistory) {
-    // 用 retail 波动率（从 CSV 的零售价列算）
     const retailChg = calcChangesForDate(view.date) || {};
     const avg = retailChg.__AVERAGE__ || {};
     c1 = fmtPct(avg.prev);
     c2 = fmtPct(avg.year_start);
     c3 = fmtPct(avg.last_year);
   } else {
-    const rc = (view.changes && view.changes.__RETAIL__ && view.changes.__RETAIL__.__AVERAGE__) || {};
+    const rc = (view && view.changes && view.changes.__RETAIL__ && view.changes.__RETAIL__.__AVERAGE__) || {};
     c1 = fmtPct(rc.prev);
     c2 = fmtPct(rc.year_start);
     c3 = fmtPct(rc.last_year);
@@ -644,7 +655,7 @@ function renderFuelTable(openData, dateStr, view) {
       <td>${c3}</td>
     </tr>`;
 
-  // 汽油行（只在最新日期显示，历史日期显示 —）
+  // 汽油行
   const hideClass = showAllFuelTypes ? 'show' : '';
   ['無鉛汽油', '特級無鉛汽油'].forEach(typeKey => {
     let price = null;
@@ -666,7 +677,7 @@ function renderFuelTable(openData, dateStr, view) {
       </tr>`;
   });
 
-  dateEl.textContent = dateStr || '—';
+  dateEl.textContent = (view && view.date) || dateStr || '—';
 }
 
 // ============== 波动率格式化 ==============
