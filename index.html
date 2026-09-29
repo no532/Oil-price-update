@@ -62,6 +62,7 @@
 <div class="tab-bar">
   <div class="tab active" data-tab="domestic">全国各省市油价</div>
   <div class="tab" data-tab="intl">国际原油</div>
+  <div class="tab" data-tab="hk">香港燃油</div>
 </div>
 
 <div class="pane active" id="pane-domestic">
@@ -122,6 +123,11 @@
     </div>
 
   </div>
+</div>
+
+<!-- 香港燃油 -->
+<div class="pane" id="pane-hk">
+  <iframe src="香港/hk.html" style="height:calc(100vh - 52px);"></iframe>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
@@ -390,7 +396,6 @@ function renderChart24h() {
     };
   });
 
-  // 标题日期用 oil_minline.json 的 update_time
   let lastDateStr;
   if (data.update_time) {
     const d = data.update_time.slice(0, 10);
