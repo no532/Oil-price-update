@@ -4,7 +4,6 @@ import datetime
 import os
 import pandas as pd
 
-# ★ 用脚本所在目录作为基准（不管在哪里跑都对）
 BASE = os.path.dirname(os.path.abspath(__file__))
 HISTORY_XLSX = os.path.join(BASE, "oil_history.xlsx")
 OUT_JSON = os.path.join(BASE, "oil_monthly.json")
@@ -36,7 +35,6 @@ def parse_price(v):
 
 
 def load_sheet1():
-    """读 Sheet1：日期 / WTI / 布伦特 / OPEC"""
     if not os.path.exists(HISTORY_XLSX):
         print(f"未找到 {HISTORY_XLSX}")
         return pd.DataFrame(columns=[COL_DATE, COL_WTI, COL_BRENT, COL_OPEC])
@@ -56,7 +54,6 @@ def load_sheet1():
 
 
 def load_sheet2():
-    """读 Sheet2：日期 / 品种 / 开 / 收 / 高 / 低"""
     empty = pd.DataFrame(columns=[COL2_DATE, COL2_NAME, COL2_OPEN, COL2_CLOSE, COL2_HIGH, COL2_LOW])
     if not os.path.exists(HISTORY_XLSX):
         return empty
@@ -88,7 +85,6 @@ def export_json(df1, df2):
         "dailyDetail": {},
     }
 
-    # ---------- series（Sheet1） ----------
     col_map = {
         COL_WTI: "WTI纽约原油",
         COL_BRENT: "布伦特油",
@@ -102,7 +98,6 @@ def export_json(df1, df2):
                 pts.append([row[COL_DATE], float(v)])
         result["series"][name] = pts
 
-    # ---------- dailyDetail（Sheet2） ----------
     detail = {}
     for _, row in df2.iterrows():
         name = row[COL2_NAME]
