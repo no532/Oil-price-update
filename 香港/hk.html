@@ -10,6 +10,21 @@
   h1 { text-align:center; font-size:26px; margin:8px 0 6px; font-weight:600; }
   .subtitle { text-align:center; font-size:13px; color:#b0b8c1; margin-bottom:24px; }
 
+  /* 全局日期筛选器 */
+  .global-filter {
+    display:flex; align-items:center; gap:12px;
+    background:#fff; border-radius:8px; padding:14px 20px;
+    margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .global-filter label { font-size:14px; color:#5a6b7b; font-weight:600; }
+  .global-filter input[type="date"] {
+    padding:8px 14px; border:1px solid #dcdfe6; border-radius:4px;
+    font-size:14px; color:#1f2d3d;
+  }
+  .global-filter__hint {
+    font-size:12px; color:#b0b8c1; margin-left:auto;
+  }
+
   /* 顶部燃油产品表 */
   .fuel-table-box {
     background:#fff; border-radius:12px; padding:20px;
@@ -18,7 +33,15 @@
   .fuel-table-box h2 {
     font-size:16px; margin:0 0 12px; font-weight:600; color:#1f2d3d;
     border-left:4px solid #c9302c; padding-left:10px;
+    display:flex; align-items:center; justify-content:space-between;
   }
+  .fuel-toggle-btn {
+    padding:4px 14px; border:1px solid #dcdfe6; background:#fff;
+    border-radius:4px; cursor:pointer; font-size:12px; color:#5a6b7b;
+    font-weight:400;
+  }
+  .fuel-toggle-btn:hover { border-color:#409eff; color:#409eff; }
+
   .fuel-table { width:100%; border-collapse:collapse; font-size:14px; }
   .fuel-table th {
     padding:12px 16px; background:#fafbfc; color:#1f2d3d;
@@ -37,13 +60,18 @@
   .fuel-table td:nth-child(5) { text-align:center; font-weight:600; font-size:14px; }
   .fuel-table tr:last-child td { border-bottom:none; }
   .fuel-table .unit { font-size:13px; color:#8492a6; font-weight:400; margin-left:4px; }
+
+  /* 汽油行（折叠） */
+  .fuel-row-gasoline { display:none; }
+  .fuel-row-gasoline.show { display:table-row; }
+
   .fuel-note {
     margin-top:14px; padding-top:12px;
     border-top:1px dashed #e4e7ed;
     font-size:12px; color:#8492a6; line-height:1.8;
   }
 
-  /* 平均价大卡（参照国内"油价概览"配色）*/
+  /* 平均价大卡 */
   .avg-card {
     background:#fff; border:1px solid #e4e7ed; border-radius:12px;
     padding:20px 24px; margin-bottom:20px;
@@ -129,21 +157,6 @@
   }
   .chart { width:100%; height:420px; }
 
-  .filter-bar {
-    display:flex; justify-content:center; align-items:center; gap:12px;
-    margin-bottom:16px; flex-wrap:wrap;
-  }
-  .filter-bar label { font-size:13px; color:#5a6b7b; }
-  .filter-bar input[type="date"] {
-    padding:6px 10px; border:1px solid #dcdfe6; border-radius:4px;
-    font-size:13px; color:#1f2d3d;
-  }
-  .filter-bar button {
-    padding:6px 16px; border:1px solid #dcdfe6; background:#fff;
-    border-radius:4px; cursor:pointer; font-size:13px; color:#5a6b7b;
-  }
-  .filter-bar button:hover { border-color:#409eff; color:#409eff; }
-
   .type-btn {
     padding:6px 18px; margin-left:6px; border:1px solid #dcdfe6;
     background:#fff; border-radius:4px; cursor:pointer; font-size:13px;
@@ -163,9 +176,19 @@
   <h1>香港燃油价格</h1>
   <div class="subtitle" id="updateTime">加载中…</div>
 
+  <!-- 全局日期筛选器 -->
+  <div class="global-filter">
+    <label>查看日期：</label>
+    <input type="date" id="globalDate">
+    <span class="global-filter__hint" id="globalDateHint"></span>
+  </div>
+
   <!-- 顶部：燃油产品表 -->
   <div class="fuel-table-box">
-    <h2>燃油产品价格（柴油）</h2>
+    <h2>
+      <span>燃油产品价格</span>
+      <button id="fuelToggleBtn" class="fuel-toggle-btn">展开其他油品 ▾</button>
+    </h2>
     <table class="fuel-table">
       <thead>
         <tr>
@@ -198,7 +221,7 @@
     <div id="barChart" class="chart"></div>
   </div>
 
-  <!-- 折线图 + 日期筛选器 + 价格类型切换 -->
+  <!-- 折线图 -->
   <div class="chart-box">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:12px;">
       <h2 style="margin:0;">历史走势（柴油）</h2>
@@ -207,18 +230,6 @@
         <button class="type-btn" id="btnRetail">零售价</button>
       </div>
     </div>
-
-    <div class="filter-bar">
-      <label>查看日期区间：</label>
-      <input type="date" id="dateFrom">
-      <span style="color:#b0b8c1;">~</span>
-      <input type="date" id="dateTo">
-      <button id="rangeAllBtn">全部</button>
-      <button id="range1MBtn">近 1 月</button>
-      <button id="range3MBtn">近 3 月</button>
-      <button id="range1YBtn">近 1 年</button>
-    </div>
-
     <div id="lineChart" class="chart"></div>
   </div>
 
@@ -278,7 +289,10 @@ const CSV_COLS_RETAIL = {
 
 let data = null;
 let historyRows = [];
+let historyByDate = {};
 let lineType = 'after';
+let selectedDate = null;
+let showAllFuelTypes = false;
 let barChart = null;
 let lineChart = null;
 
@@ -307,6 +321,7 @@ function parseInputDate(s) {
   if (!y || !m || !d) return null;
   return new Date(y, m - 1, d);
 }
+function round2(v) { return Math.round(v * 100) / 100; }
 
 // ============== 数据加载 ==============
 async function load() {
@@ -345,109 +360,187 @@ function parseCSV(text) {
   return { headers, rows };
 }
 
+// ============== 根据 selectedDate 取数据 ==============
+function getDataForDate(dateISO) {
+  if (!dateISO || !data) {
+    return {
+      diesel: data.diesel || {},
+      avg: data.avg_today,
+      changes: data.changes || {},
+      date: data.date,
+      isHistory: false,
+    };
+  }
+  const dt = parseInputDate(dateISO);
+  if (!dt) return null;
+  const csvDateStr = `${dt.getFullYear()}/${dt.getMonth()+1}/${dt.getDate()}`;
+
+  const row = historyByDate[csvDateStr];
+  if (!row) return { date: csvDateStr, missing: true, diesel: {}, changes: {}, avg: null, isHistory: true };
+
+  const diesel = {};
+  for (const brand of BRANDS) {
+    const r = parseFloat(row[CSV_COLS_RETAIL[brand]]);
+    const a = parseFloat(row[CSV_COLS_AFTER[brand]]);
+    if (isNaN(r) && isNaN(a)) continue;
+    diesel[brand] = {
+      retail: isNaN(r) ? null : r,
+      after_discount: isNaN(a) ? null : a,
+      discount: (!isNaN(r) && !isNaN(a)) ? round2(r - a) : null,
+    };
+  }
+  const avgVals = Object.values(diesel).map(d => d.after_discount).filter(v => v != null);
+  const avg = avgVals.length ? round2(avgVals.reduce((s,v)=>s+v,0) / avgVals.length) : null;
+
+  const changes = calcChangesForDate(csvDateStr);
+
+  return { diesel, avg, changes, date: csvDateStr, isHistory: true };
+}
+
+// ============== 指定日期的波动率 ==============
+function calcChangesForDate(csvDateStr) {
+  const result = {};
+  const row = historyByDate[csvDateStr];
+  if (!row) return result;
+
+  const targetDate = parseDateStr(csvDateStr);
+  if (!targetDate) return result;
+
+  const sortedDates = Object.keys(historyByDate).sort((a, b) => {
+    const da = parseDateStr(a), db = parseDateStr(b);
+    return (da && db) ? da - db : 0;
+  });
+  const idx = sortedDates.indexOf(csvDateStr);
+
+  for (const brand of BRANDS) {
+    const col = CSV_COLS_AFTER[brand];
+    const todayVal = parseFloat(row[col]);
+    if (isNaN(todayVal)) { result[brand] = {prev:null, year_start:null, last_year:null}; continue; }
+
+    const r = { prev: null, year_start: null, last_year: null };
+
+    for (let i = idx - 1; i >= 0; i--) {
+      const v = parseFloat(historyByDate[sortedDates[i]][col]);
+      if (!isNaN(v) && Math.abs(v - todayVal) > 0.001) {
+        r.prev = round2((todayVal - v) / v * 100);
+        break;
+      }
+    }
+    const year = targetDate.getFullYear();
+    for (let i = 0; i < sortedDates.length; i++) {
+      const d = parseDateStr(sortedDates[i]);
+      if (d && d.getFullYear() === year && d.getMonth() === 0) {
+        const v = parseFloat(historyByDate[sortedDates[i]][col]);
+        if (!isNaN(v)) { r.year_start = round2((todayVal - v) / v * 100); }
+        break;
+      }
+    }
+    const lyDate = new Date(targetDate); lyDate.setFullYear(lyDate.getFullYear() - 1);
+    let best = null, bestDiff = Infinity;
+    for (const k of sortedDates) {
+      const d = parseDateStr(k);
+      if (!d || d.getFullYear() !== lyDate.getFullYear()) continue;
+      const diff = Math.abs(d - lyDate);
+      if (diff < bestDiff) { bestDiff = diff; best = k; }
+    }
+    if (best) {
+      const v = parseFloat(historyByDate[best][col]);
+      if (!isNaN(v)) { r.last_year = round2((todayVal - v) / v * 100); }
+    }
+    result[brand] = r;
+  }
+
+  // 平均
+  const avgOf = (dStr) => {
+    const r = historyByDate[dStr];
+    if (!r) return null;
+    const vals = BRANDS.map(b => parseFloat(r[CSV_COLS_AFTER[b]])).filter(v => !isNaN(v));
+    return vals.length ? vals.reduce((s,v)=>s+v,0)/vals.length : null;
+  };
+  const todayAvg = avgOf(csvDateStr);
+  const rAvg = {prev:null, year_start:null, last_year:null};
+  if (todayAvg != null) {
+    for (let i = idx - 1; i >= 0; i--) {
+      const v = avgOf(sortedDates[i]);
+      if (v != null && Math.abs(v - todayAvg) > 0.001) {
+        rAvg.prev = round2((todayAvg - v) / v * 100); break;
+      }
+    }
+    const year = targetDate.getFullYear();
+    for (let i = 0; i < sortedDates.length; i++) {
+      const d = parseDateStr(sortedDates[i]);
+      if (d && d.getFullYear() === year && d.getMonth() === 0) {
+        const v = avgOf(sortedDates[i]);
+        if (v != null) { rAvg.year_start = round2((todayAvg - v) / v * 100); }
+        break;
+      }
+    }
+    let best = null, bestDiff = Infinity;
+    for (const k of sortedDates) {
+      const d = parseDateStr(k);
+      if (!d || d.getFullYear() !== lyDate.getFullYear()) continue;
+      const diff = Math.abs(d - lyDate);
+      if (diff < bestDiff) { bestDiff = diff; best = k; }
+    }
+    if (best) {
+      const v = avgOf(best);
+      if (v != null) { rAvg.last_year = round2((todayAvg - v) / v * 100); }
+    }
+    result.__AVERAGE__ = rAvg;
+  }
+  return result;
+}
+
+// ============== 渲染入口 ==============
 async function renderAll() {
   if (!data) return;
   document.getElementById('updateTime').textContent =
     '更新时间：' + data.update_time + '（数据日期：' + data.date + '）';
 
-  renderFuelTable(data.open_data || {}, data.date, data.changes || {});
-
-  const diesel = data.diesel || {};
-  const changes = data.changes || {};
-  const avgToday = data.avg_today;
-
-  renderAvgCard(avgToday, changes.__AVERAGE__ || {});
-  renderCards(diesel, changes);
-  renderDetailTable(diesel, changes);
-  renderBarChart(diesel);
-
+  // 历史数据 + 索引
   const hist = await loadHistory();
   if (hist && hist.rows && hist.rows.length > 0) {
     historyRows = hist.rows.slice();
     historyRows.sort((a, b) => {
-      const da = parseDateStr(a['Date']);
-      const db = parseDateStr(b['Date']);
-      if (!da || !db) return 0;
-      return da - db;
+      const da = parseDateStr(a['Date']), db = parseDateStr(b['Date']);
+      return (da && db) ? da - db : 0;
     });
-    setupDateFilter();
-    renderLineChart();
-  } else {
-    if (!lineChart) lineChart = echarts.init(document.getElementById('lineChart'));
-    lineChart.clear();
-    lineChart.setOption({
-      title: {
-        text: '暂无历史数据',
-        left: 'center', top: 'center',
-        textStyle: { color: '#b0b8c1', fontSize: 14, fontWeight: 'normal' }
-      }
-    });
+    historyByDate = {};
+    historyRows.forEach(r => { if (r['Date']) historyByDate[r['Date']] = r; });
+    setupGlobalDateFilter();
   }
+
+  const view = getDataForDate(selectedDate);
+
+  renderFuelTable(data.open_data || {}, data.date, view);
+  renderAvgCard(view.avg, (view.changes && view.changes.__AVERAGE__) || {});
+  renderCards(view.diesel, view.changes || {});
+  renderDetailTable(view.diesel, view.changes || {});
+  renderBarChart(view.diesel);
+  renderLineChart();
 }
 
-// ============== 日期筛选器 ==============
-function setupDateFilter() {
-  const dateFrom = document.getElementById('dateFrom');
-  const dateTo = document.getElementById('dateTo');
-
+// ============== 全局日期筛选器 ==============
+function setupGlobalDateFilter() {
+  const input = document.getElementById('globalDate');
+  const hint = document.getElementById('globalDateHint');
   if (historyRows.length === 0) return;
 
   const first = parseDateStr(historyRows[0]['Date']);
   const last = parseDateStr(historyRows[historyRows.length - 1]['Date']);
   if (!first || !last) return;
 
-  dateFrom.min = fmtDateInput(first);
-  dateFrom.max = fmtDateInput(last);
-  dateTo.min = fmtDateInput(first);
-  dateTo.max = fmtDateInput(last);
+  input.min = fmtDateInput(first);
+  input.max = fmtDateInput(last);
+  if (!input.value) {
+    input.value = fmtDateInput(last);
+    selectedDate = fmtDateInput(last);
+  }
+  hint.textContent = `可选范围：${fmtDateInput(first)} ~ ${fmtDateInput(last)}`;
 
-  dateFrom.value = fmtDateInput(first);
-  dateTo.value = fmtDateInput(last);
-
-  dateFrom.onchange = () => renderLineChart();
-  dateTo.onchange = () => renderLineChart();
-
-  document.getElementById('rangeAllBtn').onclick = () => {
-    dateFrom.value = fmtDateInput(first);
-    dateTo.value = fmtDateInput(last);
-    renderLineChart();
-  };
-  document.getElementById('range1MBtn').onclick = () => {
-    const to = last;
-    const from = new Date(to);
-    from.setMonth(from.getMonth() - 1);
-    dateFrom.value = fmtDateInput(from < first ? first : from);
-    dateTo.value = fmtDateInput(to);
-    renderLineChart();
-  };
-  document.getElementById('range3MBtn').onclick = () => {
-    const to = last;
-    const from = new Date(to);
-    from.setMonth(from.getMonth() - 3);
-    dateFrom.value = fmtDateInput(from < first ? first : from);
-    dateTo.value = fmtDateInput(to);
-    renderLineChart();
-  };
-  document.getElementById('range1YBtn').onclick = () => {
-    const to = last;
-    const from = new Date(to);
-    from.setFullYear(from.getFullYear() - 1);
-    dateFrom.value = fmtDateInput(from < first ? first : from);
-    dateTo.value = fmtDateInput(to);
-    renderLineChart();
-  };
-
-  document.getElementById('btnAfter').onclick = () => {
-    lineType = 'after';
-    document.getElementById('btnAfter').classList.add('active');
-    document.getElementById('btnRetail').classList.remove('active');
-    renderLineChart();
-  };
-  document.getElementById('btnRetail').onclick = () => {
-    lineType = 'retail';
-    document.getElementById('btnRetail').classList.add('active');
-    document.getElementById('btnAfter').classList.remove('active');
-    renderLineChart();
+  input.onchange = () => {
+    selectedDate = input.value || null;
+    renderAll();
   };
 }
 
@@ -456,31 +549,7 @@ function renderLineChart() {
   if (!lineChart) lineChart = echarts.init(document.getElementById('lineChart'));
   if (!historyRows || historyRows.length === 0) return;
 
-  const fromStr = document.getElementById('dateFrom').value;
-  const toStr = document.getElementById('dateTo').value;
-  const fromD = parseInputDate(fromStr);
-  const toD = parseInputDate(toStr);
-
-  let filtered = historyRows.filter(r => {
-    const d = parseDateStr(r['Date']);
-    if (!d) return false;
-    if (fromD && d < fromD) return false;
-    if (toD && d > toD) return false;
-    return true;
-  });
-
-  if (filtered.length === 0) {
-    lineChart.clear();
-    lineChart.setOption({
-      title: {
-        text: '所选日期区间内无数据',
-        left: 'center', top: 'center',
-        textStyle: { color: '#b0b8c1', fontSize: 14, fontWeight: 'normal' }
-      }
-    });
-    return;
-  }
-
+  const filtered = historyRows;
   const xData = filtered.map(r => r['Date'] || '');
   const csvCols = lineType === 'retail' ? CSV_COLS_RETAIL : CSV_COLS_AFTER;
 
@@ -529,44 +598,74 @@ function renderLineChart() {
 }
 
 // ============== 顶部燃油产品表 ==============
-function renderFuelTable(openData, dateStr, changes) {
+function renderFuelTable(openData, dateStr, view) {
   const tbody = document.getElementById('fuelTableBody');
   const dateEl = document.getElementById('fuelUpdateDate');
   tbody.innerHTML = '';
 
-  const ORDER = ['柴油', '無鉛汽油', '特級無鉛汽油'];
-  const retailChanges = (changes && changes.__RETAIL__) || {};
-  const avgRetailChange = retailChanges.__AVERAGE__ || {};
+  const retailChanges = (view && view.changes && view.changes.__RETAIL__) || {};
+  const dieselChange = retailChanges.__AVERAGE__ || view.changes?.__AVERAGE__ || {};
 
-  for (const typeKey of ORDER) {
-    const prices = openData[typeKey];
-    if (!prices) continue;
-    const values = Object.values(prices);
-    const price = values.length ? values[0] : null;
-    const info = FUEL_TYPE_MAP[typeKey] || { name: typeKey };
+  // 柴油行的零售价（从当前 view 里的柴油数据求平均，退回到 open_data）
+  let dieselRetail = null;
+  if (view && view.diesel) {
+    const vals = BRANDS.map(b => view.diesel[b] && view.diesel[b].retail).filter(v => v != null);
+    if (vals.length) dieselRetail = vals.reduce((s,v)=>s+v,0) / vals.length;
+  }
+  if (dieselRetail == null && openData['柴油']) {
+    const vs = Object.values(openData['柴油']);
+    if (vs.length) dieselRetail = vs[0];
+  }
 
-    let c1 = '<span class="flat">—</span>';
-    let c2 = '<span class="flat">—</span>';
-    let c3 = '<span class="flat">—</span>';
-    if (typeKey === '柴油') {
-      c1 = fmtPct(avgRetailChange.prev);
-      c2 = fmtPct(avgRetailChange.year_start);
-      c3 = fmtPct(avgRetailChange.last_year);
+  // 柴油行的波动率：如果是最新（今天），用 changes；如果是历史日期，用 view.changes
+  let c1 = '<span class="flat">—</span>';
+  let c2 = '<span class="flat">—</span>';
+  let c3 = '<span class="flat">—</span>';
+  if (view && view.isHistory) {
+    // 用 retail 波动率（从 CSV 的零售价列算）
+    const retailChg = calcChangesForDate(view.date) || {};
+    const avg = retailChg.__AVERAGE__ || {};
+    c1 = fmtPct(avg.prev);
+    c2 = fmtPct(avg.year_start);
+    c3 = fmtPct(avg.last_year);
+  } else {
+    const rc = (view.changes && view.changes.__RETAIL__ && view.changes.__RETAIL__.__AVERAGE__) || {};
+    c1 = fmtPct(rc.prev);
+    c2 = fmtPct(rc.year_start);
+    c3 = fmtPct(rc.last_year);
+  }
+
+  tbody.innerHTML += `
+    <tr>
+      <td>柴油</td>
+      <td>${dieselRetail != null ? dieselRetail.toFixed(2) : '—'}<span class="unit">HKD/L</span></td>
+      <td>${c1}</td>
+      <td>${c2}</td>
+      <td>${c3}</td>
+    </tr>`;
+
+  // 汽油行（只在最新日期显示，历史日期显示 —）
+  const hideClass = showAllFuelTypes ? 'show' : '';
+  ['無鉛汽油', '特級無鉛汽油'].forEach(typeKey => {
+    let price = null;
+    if (!view || !view.isHistory) {
+      const prices = openData[typeKey];
+      if (prices) {
+        const values = Object.values(prices);
+        price = values.length ? values[0] : null;
+      }
     }
-
+    const info = FUEL_TYPE_MAP[typeKey] || { name: typeKey };
     tbody.innerHTML += `
-      <tr>
+      <tr class="fuel-row-gasoline ${hideClass}">
         <td>${info.name}</td>
         <td>${price != null ? price.toFixed(2) : '—'}<span class="unit">HKD/L</span></td>
-        <td>${c1}</td>
-        <td>${c2}</td>
-        <td>${c3}</td>
+        <td><span class="flat">—</span></td>
+        <td><span class="flat">—</span></td>
+        <td><span class="flat">—</span></td>
       </tr>`;
-  }
+  });
 
-  if (tbody.innerHTML === '') {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#b0b8c1;padding:20px;">暂无数据</td></tr>';
-  }
   dateEl.textContent = dateStr || '—';
 }
 
@@ -642,10 +741,10 @@ function renderCards(diesel, changes) {
     box.innerHTML += `
       <div class="card">
         <div class="card__brand">${brand}</div>
-        <div class="card__price">${d.after_discount.toFixed(2)}</div>
+        <div class="card__price">${d.after_discount != null ? d.after_discount.toFixed(2) : '—'}</div>
         <div class="card__unit">港元/升（折后价）</div>
-        <div class="card__row"><span>零售价</span><b>HKD ${d.retail.toFixed(2)}</b></div>
-        <div class="card__row"><span>优惠总额</span><b class="up">-HKD ${d.discount.toFixed(2)}</b></div>
+        <div class="card__row"><span>零售价</span><b>HKD ${d.retail != null ? d.retail.toFixed(2) : '—'}</b></div>
+        <div class="card__row"><span>优惠总额</span><b class="up">-HKD ${d.discount != null ? d.discount.toFixed(2) : '—'}</b></div>
         <hr style="border:none;border-top:1px dashed #e4e7ed;margin:10px 0;">
         <div class="card__row"><span>较上期</span>${fmtPct(c.prev)}</div>
         <div class="card__row"><span>较今年 1 月</span>${fmtPct(c.year_start)}</div>
@@ -665,9 +764,9 @@ function renderDetailTable(diesel, changes) {
     tbody.innerHTML += `
       <tr>
         <td style="font-weight:600;color:${COLOR[brand]};">${brand}</td>
-        <td>HKD ${d.retail.toFixed(2)}</td>
-        <td style="font-weight:600;">HKD ${d.after_discount.toFixed(2)}</td>
-        <td class="up">-HKD ${d.discount.toFixed(2)}</td>
+        <td>HKD ${d.retail != null ? d.retail.toFixed(2) : '—'}</td>
+        <td style="font-weight:600;">HKD ${d.after_discount != null ? d.after_discount.toFixed(2) : '—'}</td>
+        <td class="up">-HKD ${d.discount != null ? d.discount.toFixed(2) : '—'}</td>
         <td>${fmtPct(c.prev)}</td>
         <td>${fmtPct(c.year_start)}</td>
         <td>${fmtPct(c.last_year)}</td>
@@ -679,8 +778,8 @@ function renderDetailTable(diesel, changes) {
 function renderBarChart(diesel) {
   if (!barChart) barChart = echarts.init(document.getElementById('barChart'));
 
-  const retail = BRANDS.map(b => diesel[b] ? diesel[b].retail : 0);
-  const after  = BRANDS.map(b => diesel[b] ? diesel[b].after_discount : 0);
+  const retail = BRANDS.map(b => (diesel[b] && diesel[b].retail != null) ? diesel[b].retail : 0);
+  const after  = BRANDS.map(b => (diesel[b] && diesel[b].after_discount != null) ? diesel[b].after_discount : 0);
 
   barChart.setOption({
     tooltip: { trigger: 'axis' },
@@ -702,6 +801,31 @@ function renderBarChart(diesel) {
 
 // ============== 初始化 ==============
 load();
+
+// 展开按钮
+document.getElementById('fuelToggleBtn').onclick = () => {
+  showAllFuelTypes = !showAllFuelTypes;
+  document.querySelectorAll('.fuel-row-gasoline').forEach(el => {
+    el.classList.toggle('show', showAllFuelTypes);
+  });
+  document.getElementById('fuelToggleBtn').textContent =
+    showAllFuelTypes ? '收起其他油品 ▴' : '展开其他油品 ▾';
+};
+
+// 折线图类型切换
+document.getElementById('btnAfter').onclick = () => {
+  lineType = 'after';
+  document.getElementById('btnAfter').classList.add('active');
+  document.getElementById('btnRetail').classList.remove('active');
+  renderLineChart();
+};
+document.getElementById('btnRetail').onclick = () => {
+  lineType = 'retail';
+  document.getElementById('btnRetail').classList.add('active');
+  document.getElementById('btnAfter').classList.remove('active');
+  renderLineChart();
+};
+
 setInterval(load, 3600000);
 
 window.addEventListener('resize', () => {
