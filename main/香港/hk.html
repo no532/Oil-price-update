@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>香港燃油价格</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,"Microsoft YaHei",sans-serif; background:#f0f2f5; }
+  .wrap { padding:24px; max-width:1300px; margin:0 auto; }
+  h1 { text-align:center; font-size:26px; margin:8px 0 6px; font-weight:600; }
+  .subtitle { text-align:center; font-size:13px; color:#b0b8c1; margin-bottom:24px; }
+
+  /* 顶部燃油产品表 */
+  .fuel-table-box {
+    background:#fff; border-radius:12px; padding:20px;
+    margin-bottom:28px; box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .fuel-table-box h2 {
+    font-size:16px; margin:0 0 12px; font-weight:600; color:#1f2d3d;
+    border-left:4px solid #c9302c; padding-left:10px;
+  }
+  .fuel-table { width:100%; border-collapse:collapse; font-size:14px; }
+  .fuel-table th {
+    padding:12px 16px; background:#fafbfc; color:#1f2d3d;
+    font-weight:600; text-align:left; border-bottom:2px solid #e4e7ed;
+  }
+  .fuel-table th:nth-child(2),
+  .fuel-table th:nth-child(3),
+  .fuel-table th:nth-child(4),
+  .fuel-table th:nth-child(5) { text-align:center; }
+  .fuel-table td { padding:14px 16px; border-bottom:1px solid #f0f2f5; }
+  .fuel-table td:nth-child(2) {
+    text-align:center; font-weight:700; font-size:16px; color:#1f2d3d;
+  }
+  .fuel-table td:nth-child(3),
+  .fuel-table td:nth-child(4),
+  .fuel-table td:nth-child(5) { text-align:center; font-weight:600; font-size:14px; }
+  .fuel-table tr:last-child td { border-bottom:none; }
+  .fuel-table .unit { font-size:13px; color:#8492a6; font-weight:400; margin-left:4px; }
+  .fuel-note {
+    margin-top:14px; padding-top:12px;
+    border-top:1px dashed #e4e7ed;
+    font-size:12px; color:#8492a6; line-height:1.8;
+  }
+
+  /* 平均价大卡（参照国内"油价概览"配色）*/
+  .avg-card {
+    background:#fff; border:1px solid #e4e7ed; border-radius:12px;
+    padding:20px 24px; margin-bottom:20px;
+  }
+  .avg-card__title {
+    font-size:15px; color:#1f2d3d; font-weight:600;
+    margin-bottom:16px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .avg-card__title-star { color:#409eff; }
+  .avg-card__blocks {
+    display:grid;
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+    gap:16px;
+  }
+  .avg-block {
+    border-radius:8px;
+    padding:14px 18px;
+    min-height:96px;
+  }
+  .avg-block--price { background:#ecf5ff; }
+  .avg-block--up   { background:#ecf5ff; }
+  .avg-block--down { background:#ecf5ff; }
+  .avg-block--flat { background:#f4f4f5; }
+
+  .avg-block__label {
+    font-size:12px; color:#8492a6; margin-bottom:10px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .avg-block__dot {
+    display:inline-block; width:6px; height:6px; border-radius:50%;
+  }
+  .avg-block__dot--blue { background:#409eff; }
+  .avg-block__dot--red  { background:#e74c3c; }
+  .avg-block__dot--green{ background:#27ae60; }
+  .avg-block__dot--gray { background:#8492a6; }
+
+  .avg-block__value {
+    font-size:30px; font-weight:700; color:#1f2d3d; line-height:1.15;
+  }
+  .avg-block__value-unit {
+    font-size:16px; color:#1f2d3d; margin-left:4px; font-weight:600;
+  }
+  .avg-block__value--up   { color:#e74c3c; }
+  .avg-block__value--down { color:#27ae60; }
+  .avg-block__value--flat { color:#8492a6; }
+
+  .avg-block__desc {
+    font-size:12px; color:#8492a6; margin-top:6px;
+  }
+
+  .avg-card__note {
+    margin-top:16px; padding-top:12px;
+    border-top:1px dashed #e4e7ed;
+    font-size:12px; color:#8492a6; line-height:1.7;
+  }
+  .avg-card__note-icon {
+    display:inline-block; width:14px; height:14px; line-height:14px;
+    background:#c0c4cc; color:#fff; border-radius:50%;
+    text-align:center; font-size:10px; font-weight:700;
+    margin-right:4px; vertical-align:middle;
+  }
+
+  /* 品牌卡片 */
+  .cards { display:grid; grid-template-columns: repeat(5, 1fr); gap:12px; margin-bottom:28px; }
+  .card { background:#fff; border:1px solid #e4e7ed; border-radius:8px; padding:16px; }
+  .card__brand { font-size:14px; color:#5a6b7b; margin-bottom:8px; font-weight:600; text-align:center; }
+  .card__price { font-size:24px; font-weight:700; color:#1f2d3d; margin-bottom:4px; text-align:center; }
+  .card__unit  { font-size:11px; color:#b0b8c1; margin-bottom:10px; text-align:center; }
+  .card__row   { font-size:12px; color:#5a6b7b; margin-top:4px; display:flex; justify-content:space-between; }
+  .card__row b { font-weight:600; }
+  .up   { color:#e74c3c; }
+  .down { color:#27ae60; }
+  .flat { color:#8492a6; }
+
+  .chart-box {
+    background:#fff; border-radius:12px; padding:20px;
+    margin-bottom:24px; box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .chart-box h2 {
+    font-size:16px; margin:0 0 12px; font-weight:600; color:#1f2d3d;
+    border-left:4px solid #c9302c; padding-left:10px;
+  }
+  .chart { width:100%; height:420px; }
+
+  .filter-bar {
+    display:flex; justify-content:center; align-items:center; gap:12px;
+    margin-bottom:16px; flex-wrap:wrap;
+  }
+  .filter-bar label { font-size:13px; color:#5a6b7b; }
+  .filter-bar input[type="date"] {
+    padding:6px 10px; border:1px solid #dcdfe6; border-radius:4px;
+    font-size:13px; color:#1f2d3d;
+  }
+  .filter-bar button {
+    padding:6px 16px; border:1px solid #dcdfe6; background:#fff;
+    border-radius:4px; cursor:pointer; font-size:13px; color:#5a6b7b;
+  }
+  .filter-bar button:hover { border-color:#409eff; color:#409eff; }
+
+  .type-btn {
+    padding:6px 18px; margin-left:6px; border:1px solid #dcdfe6;
+    background:#fff; border-radius:4px; cursor:pointer; font-size:13px;
+    color:#5a6b7b;
+  }
+  .type-btn.active { background:#409eff; color:#fff; border-color:#409eff; }
+
+  table.detail { width:100%; border-collapse:collapse; background:#fff; font-size:13px; }
+  table.detail th { padding:10px; border:1px solid #e4e7ed; color:#27ae60; font-weight:600; background:#fafbfc; }
+  table.detail td { padding:10px; border:1px solid #e4e7ed; text-align:center; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <h1>香港燃油价格</h1>
+  <div class="subtitle" id="updateTime">加载中…</div>
+
+  <!-- 顶部：燃油产品表 -->
+  <div class="fuel-table-box">
+    <h2>燃油产品价格（柴油）</h2>
+    <table class="fuel-table">
+      <thead>
+        <tr>
+          <th>燃油产品</th>
+          <th>零售价（含燃油税）</th>
+          <th>较上期</th>
+          <th>较今年 1 月</th>
+          <th>较去年同期</th>
+        </tr>
+      </thead>
+      <tbody id="fuelTableBody">
+        <tr><td colspan="5" style="text-align:center;color:#b0b8c1;padding:20px;">加载中…</td></tr>
+      </tbody>
+    </table>
+    <div class="fuel-note">
+      所有价格均已包含政府燃油税（每升 6.06 港元）<br>
+      最后更新：<span id="fuelUpdateDate">—</span>
+    </div>
+  </div>
+
+  <!-- 平均价大卡 -->
+  <div class="avg-card" id="avgCard"></div>
+
+  <!-- 品牌卡片 -->
+  <div class="cards" id="cards"></div>
+
+  <!-- 柱状图 -->
+  <div class="chart-box">
+    <h2>当前柴油价格对比（零售价 vs 折后价）</h2>
+    <div id="barChart" class="chart"></div>
+  </div>
+
+  <!-- 折线图 + 日期筛选器 + 价格类型切换 -->
+  <div class="chart-box">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:12px;">
+      <h2 style="margin:0;">历史走势（柴油）</h2>
+      <div>
+        <button class="type-btn active" id="btnAfter">折后价</button>
+        <button class="type-btn" id="btnRetail">零售价</button>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <label>查看日期区间：</label>
+      <input type="date" id="dateFrom">
+      <span style="color:#b0b8c1;">~</span>
+      <input type="date" id="dateTo">
+      <button id="rangeAllBtn">全部</button>
+      <button id="range1MBtn">近 1 月</button>
+      <button id="range3MBtn">近 3 月</button>
+      <button id="range1YBtn">近 1 年</button>
+    </div>
+
+    <div id="lineChart" class="chart"></div>
+  </div>
+
+  <!-- 明细表 -->
+  <div class="chart-box">
+    <h2>今日明细（柴油）</h2>
+    <table class="detail">
+      <thead>
+        <tr>
+          <th>品牌</th>
+          <th>零售价（含燃油税）</th>
+          <th>折后价（扣门市折扣及燃油税）</th>
+          <th>优惠总额（门市折扣+燃油税）</th>
+          <th>较上期</th>
+          <th>较今年 1 月</th>
+          <th>较去年同期</th>
+        </tr>
+      </thead>
+      <tbody id="detailTable"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script>
+const BRANDS = ['埃索', '中國石油', '蜆殼', '中石化', '加德士'];
+const COLOR = {
+  '埃索':     '#e74c3c',
+  '中國石油': '#409eff',
+  '蜆殼':     '#e6a23c',
+  '中石化':   '#27ae60',
+  '加德士':   '#9b59b6',
+};
+
+const FUEL_TYPE_MAP = {
+  '無鉛汽油':     { name: '无铅汽油' },
+  '特級無鉛汽油': { name: '特级无铅汽油' },
+  '柴油':         { name: '柴油' },
+};
+
+const CSV_COLS_AFTER = {
+  '埃索':     '埃索 (扣除門市折扣及燃油稅)',
+  '中國石油': '中國石油 (扣除門市折扣及燃油稅)',
+  '蜆殼':     '蜆殼 (扣除門市折扣及燃油稅)',
+  '中石化':   '中石化 (扣除門市折扣及燃油稅)',
+  '加德士':   '加德士 (扣除門市折扣及燃油稅)',
+};
+
+const CSV_COLS_RETAIL = {
+  '埃索':     '埃索 (零售牌價)',
+  '中國石油': '中國石油 (零售牌價)',
+  '蜆殼':     '蜆殼 (零售牌價)',
+  '中石化':   '中石化 (零售牌價)',
+  '加德士':   '加德士 (零售牌價)',
+};
+
+let data = null;
+let historyRows = [];
+let lineType = 'after';
+let barChart = null;
+let lineChart = null;
+
+// ============== 日期工具 ==============
+function parseDateStr(s) {
+  const parts = String(s || '').split('/');
+  if (parts.length !== 3) return null;
+  const y = parseInt(parts[0]);
+  const m = parseInt(parts[1]);
+  const d = parseInt(parts[2]);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+function fmtDateInput(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
+}
+function parseInputDate(s) {
+  const parts = String(s || '').split('-');
+  if (parts.length !== 3) return null;
+  const y = parseInt(parts[0]);
+  const m = parseInt(parts[1]);
+  const d = parseInt(parts[2]);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
+// ============== 数据加载 ==============
+async function load() {
+  try {
+    const res = await fetch('hk_fuel.json?_=' + Date.now());
+    data = await res.json();
+    renderAll();
+  } catch (e) {
+    document.getElementById('updateTime').textContent = '读取 hk_fuel.json 失败';
+    console.error(e);
+  }
+}
+
+async function loadHistory() {
+  try {
+    const res = await fetch('香港历史油价.csv?_=' + Date.now());
+    const text = await res.text();
+    return parseCSV(text);
+  } catch (e) {
+    console.warn('历史 CSV 加载失败', e);
+    return null;
+  }
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  const headers = lines[0].split(',').map(s => s.trim());
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cells = lines[i].split(',').map(s => s.trim());
+    if (cells.length < headers.length) continue;
+    const row = {};
+    headers.forEach((h, idx) => row[h] = cells[idx]);
+    rows.push(row);
+  }
+  return { headers, rows };
+}
+
+async function renderAll() {
+  if (!data) return;
+  document.getElementById('updateTime').textContent =
+    '更新时间：' + data.update_time + '（数据日期：' + data.date + '）';
+
+  renderFuelTable(data.open_data || {}, data.date, data.changes || {});
+
+  const diesel = data.diesel || {};
+  const changes = data.changes || {};
+  const avgToday = data.avg_today;
+
+  renderAvgCard(avgToday, changes.__AVERAGE__ || {});
+  renderCards(diesel, changes);
+  renderDetailTable(diesel, changes);
+  renderBarChart(diesel);
+
+  const hist = await loadHistory();
+  if (hist && hist.rows && hist.rows.length > 0) {
+    historyRows = hist.rows.slice();
+    historyRows.sort((a, b) => {
+      const da = parseDateStr(a['Date']);
+      const db = parseDateStr(b['Date']);
+      if (!da || !db) return 0;
+      return da - db;
+    });
+    setupDateFilter();
+    renderLineChart();
+  } else {
+    if (!lineChart) lineChart = echarts.init(document.getElementById('lineChart'));
+    lineChart.clear();
+    lineChart.setOption({
+      title: {
+        text: '暂无历史数据',
+        left: 'center', top: 'center',
+        textStyle: { color: '#b0b8c1', fontSize: 14, fontWeight: 'normal' }
+      }
+    });
+  }
+}
+
+// ============== 日期筛选器 ==============
+function setupDateFilter() {
+  const dateFrom = document.getElementById('dateFrom');
+  const dateTo = document.getElementById('dateTo');
+
+  if (historyRows.length === 0) return;
+
+  const first = parseDateStr(historyRows[0]['Date']);
+  const last = parseDateStr(historyRows[historyRows.length - 1]['Date']);
+  if (!first || !last) return;
+
+  dateFrom.min = fmtDateInput(first);
+  dateFrom.max = fmtDateInput(last);
+  dateTo.min = fmtDateInput(first);
+  dateTo.max = fmtDateInput(last);
+
+  dateFrom.value = fmtDateInput(first);
+  dateTo.value = fmtDateInput(last);
+
+  dateFrom.onchange = () => renderLineChart();
+  dateTo.onchange = () => renderLineChart();
+
+  document.getElementById('rangeAllBtn').onclick = () => {
+    dateFrom.value = fmtDateInput(first);
+    dateTo.value = fmtDateInput(last);
+    renderLineChart();
+  };
+  document.getElementById('range1MBtn').onclick = () => {
+    const to = last;
+    const from = new Date(to);
+    from.setMonth(from.getMonth() - 1);
+    dateFrom.value = fmtDateInput(from < first ? first : from);
+    dateTo.value = fmtDateInput(to);
+    renderLineChart();
+  };
+  document.getElementById('range3MBtn').onclick = () => {
+    const to = last;
+    const from = new Date(to);
+    from.setMonth(from.getMonth() - 3);
+    dateFrom.value = fmtDateInput(from < first ? first : from);
+    dateTo.value = fmtDateInput(to);
+    renderLineChart();
+  };
+  document.getElementById('range1YBtn').onclick = () => {
+    const to = last;
+    const from = new Date(to);
+    from.setFullYear(from.getFullYear() - 1);
+    dateFrom.value = fmtDateInput(from < first ? first : from);
+    dateTo.value = fmtDateInput(to);
+    renderLineChart();
+  };
+
+  document.getElementById('btnAfter').onclick = () => {
+    lineType = 'after';
+    document.getElementById('btnAfter').classList.add('active');
+    document.getElementById('btnRetail').classList.remove('active');
+    renderLineChart();
+  };
+  document.getElementById('btnRetail').onclick = () => {
+    lineType = 'retail';
+    document.getElementById('btnRetail').classList.add('active');
+    document.getElementById('btnAfter').classList.remove('active');
+    renderLineChart();
+  };
+}
+
+// ============== 折线图 ==============
+function renderLineChart() {
+  if (!lineChart) lineChart = echarts.init(document.getElementById('lineChart'));
+  if (!historyRows || historyRows.length === 0) return;
+
+  const fromStr = document.getElementById('dateFrom').value;
+  const toStr = document.getElementById('dateTo').value;
+  const fromD = parseInputDate(fromStr);
+  const toD = parseInputDate(toStr);
+
+  let filtered = historyRows.filter(r => {
+    const d = parseDateStr(r['Date']);
+    if (!d) return false;
+    if (fromD && d < fromD) return false;
+    if (toD && d > toD) return false;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    lineChart.clear();
+    lineChart.setOption({
+      title: {
+        text: '所选日期区间内无数据',
+        left: 'center', top: 'center',
+        textStyle: { color: '#b0b8c1', fontSize: 14, fontWeight: 'normal' }
+      }
+    });
+    return;
+  }
+
+  const xData = filtered.map(r => r['Date'] || '');
+  const csvCols = lineType === 'retail' ? CSV_COLS_RETAIL : CSV_COLS_AFTER;
+
+  const series = BRANDS.map(brand => ({
+    name: brand,
+    type: 'line', smooth: true, symbol: 'circle', symbolSize: 3,
+    connectNulls: true,
+    lineStyle: { width: 1.5, color: COLOR[brand] },
+    itemStyle: { color: COLOR[brand] },
+    data: filtered.map(r => {
+      const v = r[csvCols[brand]];
+      return v ? parseFloat(v) : null;
+    })
+  }));
+
+  series.push({
+    name: '平均',
+    type: 'line', smooth: true, symbol: 'none',
+    connectNulls: true,
+    lineStyle: { width: 3, color: '#409eff', type: 'dashed' },
+    itemStyle: { color: '#409eff' },
+    data: filtered.map(r => {
+      const vals = BRANDS.map(b => {
+        const v = r[csvCols[b]];
+        return v ? parseFloat(v) : null;
+      }).filter(v => v != null);
+      return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+    })
+  });
+
+  lineChart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { top: 0, data: [...BRANDS, '平均'] },
+    grid: { left: 60, right: 30, top: 40, bottom: 70 },
+    xAxis: {
+      type: 'category', data: xData,
+      axisLabel: {
+        fontSize: 11, rotate: 30,
+        interval: Math.max(0, Math.floor(xData.length / 15) - 1)
+      }
+    },
+    yAxis: { type: 'value', name: '港元/升', scale: true },
+    series
+  }, true);
+  lineChart.resize();
+}
+
+// ============== 顶部燃油产品表 ==============
+function renderFuelTable(openData, dateStr, changes) {
+  const tbody = document.getElementById('fuelTableBody');
+  const dateEl = document.getElementById('fuelUpdateDate');
+  tbody.innerHTML = '';
+
+  const ORDER = ['柴油', '無鉛汽油', '特級無鉛汽油'];
+  const retailChanges = (changes && changes.__RETAIL__) || {};
+  const avgRetailChange = retailChanges.__AVERAGE__ || {};
+
+  for (const typeKey of ORDER) {
+    const prices = openData[typeKey];
+    if (!prices) continue;
+    const values = Object.values(prices);
+    const price = values.length ? values[0] : null;
+    const info = FUEL_TYPE_MAP[typeKey] || { name: typeKey };
+
+    let c1 = '<span class="flat">—</span>';
+    let c2 = '<span class="flat">—</span>';
+    let c3 = '<span class="flat">—</span>';
+    if (typeKey === '柴油') {
+      c1 = fmtPct(avgRetailChange.prev);
+      c2 = fmtPct(avgRetailChange.year_start);
+      c3 = fmtPct(avgRetailChange.last_year);
+    }
+
+    tbody.innerHTML += `
+      <tr>
+        <td>${info.name}</td>
+        <td>${price != null ? price.toFixed(2) : '—'}<span class="unit">HKD/L</span></td>
+        <td>${c1}</td>
+        <td>${c2}</td>
+        <td>${c3}</td>
+      </tr>`;
+  }
+
+  if (tbody.innerHTML === '') {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#b0b8c1;padding:20px;">暂无数据</td></tr>';
+  }
+  dateEl.textContent = dateStr || '—';
+}
+
+// ============== 波动率格式化 ==============
+function fmtPct(pct) {
+  if (pct === null || pct === undefined) return `<span class="flat">—</span>`;
+  const cls = pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat';
+  const sign = pct > 0 ? '+' : '';
+  return `<span class="${cls}">${sign}${pct.toFixed(2)}%</span>`;
+}
+
+// ============== 平均价大卡 ==============
+function renderAvgCard(avgToday, cAvg) {
+  const box = document.getElementById('avgCard');
+  if (avgToday == null) {
+    box.innerHTML = '';
+    box.style.display = 'none';
+    return;
+  }
+  box.style.display = 'block';
+
+  function changeBlock(label, pct, desc) {
+    let cls = 'flat';
+    let dot = 'gray';
+    if (pct > 0) { cls = 'up';   dot = 'red'; }
+    else if (pct < 0) { cls = 'down'; dot = 'green'; }
+    const val = (pct === null || pct === undefined) ? '—' : `${pct > 0 ? '+' : ''}${pct.toFixed(2)}%`;
+    return `
+      <div class="avg-block avg-block--${cls}">
+        <div class="avg-block__label">
+          <span class="avg-block__dot avg-block__dot--${dot}"></span>${label}
+        </div>
+        <div class="avg-block__value avg-block__value--${cls}">${val}</div>
+        <div class="avg-block__desc">${desc}</div>
+      </div>`;
+  }
+
+  box.innerHTML = `
+    <div class="avg-card__title">
+      <span class="avg-card__title-star">★</span>
+      柴油 · 五家平均折后价
+    </div>
+    <div class="avg-card__blocks">
+      <div class="avg-block avg-block--price">
+        <div class="avg-block__label">
+          <span class="avg-block__dot avg-block__dot--blue"></span>折后均价
+        </div>
+        <div class="avg-block__value">
+          ${avgToday.toFixed(2)}<span class="avg-block__value-unit">HKD/L</span>
+        </div>
+        <div class="avg-block__desc">5 家油价商的折后价平均</div>
+      </div>
+      ${changeBlock('较上期', cAvg.prev, '相对上一次价格变动')}
+      ${changeBlock('较今年 1 月', cAvg.year_start, '相对今年年初')}
+      ${changeBlock('较去年同期', cAvg.last_year, '相对去年同一天')}
+    </div>
+    <div class="avg-card__note">
+      <span class="avg-card__note-icon">i</span>
+      折后价 = 零售价 − 门市折扣 − 燃油税（每升 6.06 港元），即消费者实际支付的每升价格。
+    </div>`;
+}
+
+// ============== 品牌卡片 ==============
+function renderCards(diesel, changes) {
+  const box = document.getElementById('cards');
+  box.innerHTML = '';
+
+  for (const brand of BRANDS) {
+    const d = diesel[brand];
+    if (!d) continue;
+    const c = (changes && changes[brand]) || {};
+
+    box.innerHTML += `
+      <div class="card">
+        <div class="card__brand">${brand}</div>
+        <div class="card__price">${d.after_discount.toFixed(2)}</div>
+        <div class="card__unit">港元/升（折后价）</div>
+        <div class="card__row"><span>零售价</span><b>HKD ${d.retail.toFixed(2)}</b></div>
+        <div class="card__row"><span>优惠总额</span><b class="up">-HKD ${d.discount.toFixed(2)}</b></div>
+        <hr style="border:none;border-top:1px dashed #e4e7ed;margin:10px 0;">
+        <div class="card__row"><span>较上期</span>${fmtPct(c.prev)}</div>
+        <div class="card__row"><span>较今年 1 月</span>${fmtPct(c.year_start)}</div>
+        <div class="card__row"><span>较去年同期</span>${fmtPct(c.last_year)}</div>
+      </div>`;
+  }
+}
+
+// ============== 明细表 ==============
+function renderDetailTable(diesel, changes) {
+  const tbody = document.getElementById('detailTable');
+  tbody.innerHTML = '';
+  for (const brand of BRANDS) {
+    const d = diesel[brand];
+    if (!d) continue;
+    const c = (changes && changes[brand]) || {};
+    tbody.innerHTML += `
+      <tr>
+        <td style="font-weight:600;color:${COLOR[brand]};">${brand}</td>
+        <td>HKD ${d.retail.toFixed(2)}</td>
+        <td style="font-weight:600;">HKD ${d.after_discount.toFixed(2)}</td>
+        <td class="up">-HKD ${d.discount.toFixed(2)}</td>
+        <td>${fmtPct(c.prev)}</td>
+        <td>${fmtPct(c.year_start)}</td>
+        <td>${fmtPct(c.last_year)}</td>
+      </tr>`;
+  }
+}
+
+// ============== 柱状图 ==============
+function renderBarChart(diesel) {
+  if (!barChart) barChart = echarts.init(document.getElementById('barChart'));
+
+  const retail = BRANDS.map(b => diesel[b] ? diesel[b].retail : 0);
+  const after  = BRANDS.map(b => diesel[b] ? diesel[b].after_discount : 0);
+
+  barChart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { top: 0, data: ['零售价', '折后价'] },
+    grid: { left: 60, right: 30, top: 40, bottom: 50 },
+    xAxis: { type: 'category', data: BRANDS },
+    yAxis: { type: 'value', name: '港元/升', min: 20, max: 40 },
+    series: [
+      { name: '零售价', type: 'bar', data: retail,
+        itemStyle: { color: '#c0c4cc' },
+        label: { show: true, position: 'top', fontSize: 11 } },
+      { name: '折后价', type: 'bar', data: after,
+        itemStyle: { color: '#409eff' },
+        label: { show: true, position: 'top', fontSize: 11, fontWeight: 'bold' } }
+    ]
+  }, true);
+  barChart.resize();
+}
+
+// ============== 初始化 ==============
+load();
+setInterval(load, 3600000);
+
+window.addEventListener('resize', () => {
+  barChart && barChart.resize();
+  lineChart && lineChart.resize();
+});
+</script>
+</body>
+</html>

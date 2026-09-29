@@ -1,0 +1,120 @@
+{
+  "update_time": "2026-09-29 11:35:31",
+  "date": "2026/9/29",
+  "diesel": {
+    "埃索": {
+      "retail": 38.13,
+      "after_discount": 25.13,
+      "discount": 13.0
+    },
+    "中國石油": {
+      "retail": 38.13,
+      "after_discount": 33.53,
+      "discount": 4.6
+    },
+    "蜆殼": {
+      "retail": 38.13,
+      "after_discount": 33.63,
+      "discount": 4.5
+    },
+    "中石化": {
+      "retail": 38.13,
+      "after_discount": 36.13,
+      "discount": 2.0
+    },
+    "加德士": {
+      "retail": 38.13,
+      "after_discount": 36.13,
+      "discount": 2.0
+    }
+  },
+  "avg_today": 32.91,
+  "avg_today_retail": 38.13,
+  "changes": {
+    "中石化": {
+      "prev": -0.82,
+      "year_start": 37.27,
+      "last_year": 40.2
+    },
+    "中國石油": {
+      "prev": -0.89,
+      "year_start": 41.36,
+      "last_year": 44.71
+    },
+    "蜆殼": {
+      "prev": -0.88,
+      "year_start": 41.18,
+      "last_year": 44.52
+    },
+    "埃索": {
+      "prev": -1.18,
+      "year_start": 5.5,
+      "last_year": 7.99
+    },
+    "加德士": {
+      "prev": -0.82,
+      "year_start": 37.27,
+      "last_year": 40.2
+    },
+    "__AVERAGE__": {
+      "prev": -0.9,
+      "year_start": 32.7,
+      "last_year": 35.71
+    },
+    "__RETAIL__": {
+      "中石化": {
+        "prev": -0.78,
+        "year_start": 34.64,
+        "last_year": 37.31
+      },
+      "中國石油": {
+        "prev": -0.78,
+        "year_start": 34.64,
+        "last_year": 37.31
+      },
+      "蜆殼": {
+        "prev": -0.78,
+        "year_start": 34.64,
+        "last_year": 37.31
+      },
+      "埃索": {
+        "prev": -0.78,
+        "year_start": 34.64,
+        "last_year": 37.31
+      },
+      "加德士": {
+        "prev": -0.78,
+        "year_start": 34.64,
+        "last_year": 37.31
+      },
+      "__AVERAGE__": {
+        "prev": -0.78,
+        "year_start": 34.64,
+        "last_year": 37.31
+      }
+    }
+  },
+  "open_data": {
+    "無鉛汽油": {
+      "中石化": 34.62,
+      "中國石油": 34.62,
+      "加德士": 34.62,
+      "埃索": 34.62,
+      "蜆殼": 34.62
+    },
+    "特級無鉛汽油": {
+      "中石化": 36.42,
+      "中國石油": 36.42,
+      "加德士": 36.42,
+      "埃索": 36.42,
+      "蜆殼": 36.42
+    },
+    "柴油": {
+      "中石化": 38.13,
+      "中國石油": 38.13,
+      "加德士": 38.13,
+      "埃索": 38.13,
+      "蜆殼": 38.13
+    }
+  }
+}
