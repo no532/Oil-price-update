@@ -2,6 +2,7 @@
 import json
 import datetime
 import os
+import re
 import pandas as pd
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -22,15 +23,53 @@ COL2_LOW = "最低"
 
 
 def parse_price(v):
+    """把 '90.043' / 'US $ 90.043' / '90.043美元/桶' / NaN 统一转成 float"""
     if v is None:
         return None
+    if isinstance(v, float) and pd.isna(v):
+        return None
     s = str(v).strip()
-    if not s:
+    if not s or s.lower() == "nan":
         return None
     s = s.replace("US", "").replace("$", "").replace(",", "").strip()
     try:
         return float(s)
     except ValueError:
+        m = re.search(r"-?\d+(?:\.\d+)?", s)
+        return float(m.group()) if m else None
+
+
+def parse_date(v):
+    """
+    兼容多种日期格式：
+      - '2026-09-22'
+      - '2026-09-21 00:00:00'
+      - datetime 对象
+      - '2026/09/22'
+    """
+    if v is None:
+        return None
+    if isinstance(v, float) and pd.isna(v):
+        return None
+    # 已经是 datetime 对象
+    if hasattr(v, "strftime"):
+        try:
+            return v.strftime("%Y-%m-%d")
+        except Exception:
+            return None
+    s = str(v).strip()
+    if not s or s.lower() == "nat" or s.lower() == "nan":
+        return None
+    # 快速路径：YYYY-MM-DD 或 YYYY/MM/DD
+    if len(s) >= 10 and s[4] in ("-", "/") and s[7] in ("-", "/"):
+        return s[:10].replace("/", "-")
+    # 兜底：pd.to_datetime
+    try:
+        d = pd.to_datetime(s, errors="coerce")
+        if pd.isna(d):
+            return None
+        return d.strftime("%Y-%m-%d")
+    except Exception:
         return None
 
 
@@ -39,13 +78,13 @@ def load_sheet1():
         print(f"未找到 {HISTORY_XLSX}")
         return pd.DataFrame(columns=[COL_DATE, COL_WTI, COL_BRENT, COL_OPEC])
 
-    df = pd.read_excel(HISTORY_XLSX, sheet_name="Sheet1")
+    df = pd.read_excel(HISTORY_XLSX, sheet_name="Sheet1", dtype=object)
     df.columns = [str(c).strip() for c in df.columns]
     for c in [COL_DATE, COL_WTI, COL_BRENT, COL_OPEC]:
         if c not in df.columns:
             df[c] = None
     df = df[[COL_DATE, COL_WTI, COL_BRENT, COL_OPEC]].copy()
-    df[COL_DATE] = pd.to_datetime(df[COL_DATE], errors="coerce").dt.strftime("%Y-%m-%d")
+    df[COL_DATE] = df[COL_DATE].apply(parse_date)
     df[COL_WTI] = df[COL_WTI].apply(parse_price)
     df[COL_BRENT] = df[COL_BRENT].apply(parse_price)
     df[COL_OPEC] = df[COL_OPEC].apply(parse_price)
@@ -62,7 +101,7 @@ def load_sheet2():
         xls = pd.ExcelFile(HISTORY_XLSX)
         if "Sheet2" not in xls.sheet_names:
             return empty
-        df = pd.read_excel(xls, sheet_name="Sheet2")
+        df = pd.read_excel(xls, sheet_name="Sheet2", dtype=object)
     except Exception:
         return empty
 
@@ -71,7 +110,7 @@ def load_sheet2():
         if c not in df.columns:
             df[c] = None
     df = df[[COL2_DATE, COL2_NAME, COL2_OPEN, COL2_CLOSE, COL2_HIGH, COL2_LOW]].copy()
-    df[COL2_DATE] = pd.to_datetime(df[COL2_DATE], errors="coerce").dt.strftime("%Y-%m-%d")
+    df[COL2_DATE] = df[COL2_DATE].apply(parse_date)
     for c in [COL2_OPEN, COL2_CLOSE, COL2_HIGH, COL2_LOW]:
         df[c] = df[c].apply(parse_price)
     df = df.dropna(subset=[COL2_DATE, COL2_NAME]).reset_index(drop=True)
