@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 每日油价推送 + 越南柴油阈值预警
+跌破 25000 = 绿色（好消息）
+回升超 25000 = 红色（坏消息）
 通过 163 邮箱 SMTP 发送
 """
 
@@ -25,8 +27,7 @@ RECEIVER_EMAIL = "Lissie.Liu@luxshare-ict.com"
 BASE_URL = "https://no532.github.io/Oil-price-update"
 LOCAL_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# 预警阈值
-VN_DIESEL_THRESHOLD = 25000     # VND/L
+VN_DIESEL_THRESHOLD = 25000
 ALERT_STATE_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     "alert_state.json"
@@ -121,6 +122,8 @@ def check_vn_diesel_alert(cur_price, state, today):
     """
     返回 (alert_type, message)
     alert_type: None / "trigger" / "recover"
+      "trigger" = 跌破阈值 → 绿色 ✅
+      "recover" = 回升超过阈值 → 红色 ⚠️
     """
     below = cur_price < VN_DIESEL_THRESHOLD
     was_below = state.get("vn_diesel_below_threshold", False)
@@ -130,17 +133,17 @@ def check_vn_diesel_alert(cur_price, state, today):
     if last_date == today:
         return None, None
 
-    # 跌破阈值
+    # 跌破阈值（绿色，好消息）
     if below and not was_below:
         return "trigger", (
-            f"⚠️ 越南柴油 DO 0.05S（区域 1）当前价 <b>{fmt_int(cur_price)} VND/L</b>"
+            f"越南柴油 DO 0.05S（区域 1）当前价 <b>{fmt_int(cur_price)} VND/L</b>"
             f"，已跌破阈值 <b>{fmt_int(VN_DIESEL_THRESHOLD)} VND/L</b>"
         )
 
-    # 已恢复（之前跌过，现在回升超过阈值）
+    # 从下方回升超过阈值（红色，坏消息）
     if not below and was_below:
         return "recover", (
-            f"✅ 越南柴油 DO 0.05S（区域 1）当前价 <b>{fmt_int(cur_price)} VND/L</b>"
+            f"越南柴油 DO 0.05S（区域 1）当前价 <b>{fmt_int(cur_price)} VND/L</b>"
             f"，已回升超过阈值 <b>{fmt_int(VN_DIESEL_THRESHOLD)} VND/L</b>"
         )
 
@@ -168,7 +171,6 @@ def fetch_domestic():
         })
     rows.sort(key=lambda x: x["province"])
 
-    # ★ 全国 0 号柴油平均值
     p0_vals = [r["p0"] for r in rows if r["p0"] is not None]
     avg_p0 = sum(p0_vals) / len(p0_vals) if p0_vals else None
 
@@ -186,7 +188,6 @@ def fetch_hongkong():
     for fuel_name, brands in open_data.items():
         if not isinstance(brands, dict):
             continue
-        # ★ 取所有品牌的平均零售价（去掉公司差异）
         vals = [v for v in brands.values() if isinstance(v, (int, float))]
         avg_retail = sum(vals) / len(vals) if vals else None
         rows.append({
@@ -261,13 +262,10 @@ def fetch_vietnam():
 def build_summary(domestic, hk, intl, vn):
     items = []
 
-    # 国内柴油（全国平均）
     if domestic and domestic.get("avg_p0") is not None:
-        # 平均 diff：先算各省 diff 平均（仅用于展示）
         d0_vals = [r["d0"] for r in domestic["rows"] if r["d0"] is not None]
         avg_d0 = sum(d0_vals) / len(d0_vals) if d0_vals else None
         pct = (avg_d0 / (domestic["avg_p0"] - avg_d0) * 100) if avg_d0 and domestic["avg_p0"] else None
-
         items.append({
             "label": "国内柴油（全国 31 省平均）",
             "unit": "元/升",
@@ -276,7 +274,6 @@ def build_summary(domestic, hk, intl, vn):
             "pct": pct,
         })
 
-    # 香港柴油（平均零售价，去掉品牌）
     if hk:
         for r in hk["rows"]:
             if "柴油" in r["fuel"]:
@@ -289,7 +286,6 @@ def build_summary(domestic, hk, intl, vn):
                 })
                 break
 
-    # 国际 WTI / 布伦特
     if intl:
         for r in intl["rows"]:
             items.append({
@@ -300,7 +296,6 @@ def build_summary(domestic, hk, intl, vn):
                 "pct": r["pct"],
             })
 
-    # 越南柴油 05S 区域1
     if vn:
         for r in vn["rows"]:
             if r["prefix"] == "DO005S_M2":
@@ -342,14 +337,16 @@ def build_summary(domestic, hk, intl, vn):
     html += "</table></div>"
     return html
 
-# ==================== 预警横幅 ====================
+# ==================== 预警横幅（颜色已交换） ====================
 def build_alert_banner(alert_type, message):
     if not alert_type:
         return ""
+    # 跌破 = 好消息 = 绿色
     if alert_type == "trigger":
-        bg, border, color, icon = "#fdf0ef", "#f5c6c0", "#c9302c", "⚠️"
-    else:
         bg, border, color, icon = "#eef9f1", "#b7e4c7", "#27ae60", "✅"
+    # 回升 = 坏消息 = 红色
+    else:  # "recover"
+        bg, border, color, icon = "#fdf0ef", "#f5c6c0", "#c9302c", "⚠️"
     return f"""
     <div style="background:{bg};border:2px solid {border};border-radius:8px;
                 padding:16px 20px;margin-bottom:20px;">
@@ -485,11 +482,11 @@ def build_email(alert_type=None, alert_msg=None):
     summary_html = build_summary(domestic, hk, intl, vn)
     alert_html = build_alert_banner(alert_type, alert_msg)
 
-    # 邮件标题
+    # 邮件标题（颜色对应的图标）
     if alert_type == "trigger":
-        subject = f"⚠️ 越南柴油跌破阈值 · {today}"
+        subject = f"✅ 越南柴油跌破阈值 · {today}"
     elif alert_type == "recover":
-        subject = f"✅ 越南柴油回升 · {today}"
+        subject = f"⚠️ 越南柴油回升 · {today}"
     else:
         subject = f"【每日油价】{today}"
 
@@ -543,7 +540,6 @@ def main():
 
     today = bj_now().strftime("%Y-%m-%d")
 
-    # 1. 拉越南数据，判断预警
     vn = fetch_vietnam()
     vn_diesel_z1 = None
     if vn:
@@ -552,16 +548,14 @@ def main():
                 vn_diesel_z1 = r["z1"]
                 break
 
-    # 2. 读上次状态
     state = load_alert_state()
 
     alert_type = None
     alert_msg = None
     if vn_diesel_z1 is not None:
         alert_type, alert_msg = check_vn_diesel_alert(vn_diesel_z1, state, today)
-        print(f"[INFO] 越南柴油 05S 区域1 = {vn_diesel_z1}, 预警类型 = {alert_type}")
+        print(f"[INFO] 越南柴油 05S 区域1 = {vn_diesel_z1}, 预警 = {alert_type}")
 
-    # 3. 拼邮件 + 发送
     _, subject, html = build_email(alert_type, alert_msg)
     try:
         send_mail(subject, html)
@@ -570,12 +564,10 @@ def main():
         print("邮件发送失败:", e)
         raise
 
-    # 4. 更新状态
     if alert_type:
         state["vn_diesel_below_threshold"] = (vn_diesel_z1 < VN_DIESEL_THRESHOLD)
         state["last_alert_date"] = today
     else:
-        # 每天也要更新 below 状态（以便明天正确判断"回升"）
         state["vn_diesel_below_threshold"] = (vn_diesel_z1 is not None
                                               and vn_diesel_z1 < VN_DIESEL_THRESHOLD)
     state["threshold"] = VN_DIESEL_THRESHOLD
