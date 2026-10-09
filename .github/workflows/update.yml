@@ -2,7 +2,7 @@ name: Update Oil Prices
 
 on:
   schedule:
-    - cron: '*/30 * * * *'      # 每 30 分钟（5 分钟太频繁易被限流）
+    - cron: '*/30 * * * *'      # 每 30 分钟
   workflow_dispatch:
 
 jobs:
@@ -20,8 +20,11 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@v1
+
       - name: Install deps
-        run: pip install requests pandas openpyxl beautifulsoup4 lxml
+        run: pip install -r requirements.txt
 
       - name: Run oil_chart.py（国际分时）
         working-directory: 国际
@@ -38,6 +41,12 @@ jobs:
       - name: Run hk_fuel.py（香港燃油）
         working-directory: 香港
         run: python hk_fuel.py
+        continue-on-error: true
+        timeout-minutes: 5
+
+      - name: Run vietnam_fuel.py（越南燃油）
+        working-directory: 越南
+        run: python vietnam_fuel.py
         continue-on-error: true
         timeout-minutes: 5
 
