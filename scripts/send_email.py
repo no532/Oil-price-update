@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-每日油价推送：
-  顶部汇总（4 大板块柴油价格+涨跌）
-  → 国内 / 香港 / 国际 / 越南 明细
-  → 网页链接
+每日油价推送 + 越南柴油阈值预警
 通过 163 邮箱 SMTP 发送
 """
 
@@ -18,15 +15,22 @@ from email.header import Header
 from datetime import datetime, timedelta, timezone
 
 # ==================== 配置 ====================
-MAIL_USERNAME = os.environ.get("MAIL_USERNAME")   # 如 abc@163.com
-MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")   # 163 邮箱授权码
+MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
+MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
 SMTP_HOST = "smtp.163.com"
 SMTP_PORT = 465
 
-RECEIVER_EMAIL = "Lissie.Liu@luxshare-ict.com"    # ★ 收件邮箱
+RECEIVER_EMAIL = "Lissie.Liu@luxshare-ict.com"
 
 BASE_URL = "https://no532.github.io/Oil-price-update"
 LOCAL_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# 预警阈值
+VN_DIESEL_THRESHOLD = 25000     # VND/L
+ALERT_STATE_FILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "alert_state.json"
+)
 
 # ==================== 时间 ====================
 def bj_now():
@@ -59,40 +63,88 @@ def load_json(url, local):
     return load_json_local(local)
 
 def fmt_num(v):
-    if v is None:
-        return "—"
-    try:
-        return f"{float(v):.2f}"
-    except Exception:
-        return "—"
+    if v is None: return "—"
+    try: return f"{float(v):.2f}"
+    except: return "—"
 
 def fmt_int(v):
-    if v is None:
-        return "—"
-    try:
-        return f"{int(v):,}"
-    except Exception:
-        return "—"
+    if v is None: return "—"
+    try: return f"{int(v):,}"
+    except: return "—"
 
 def fmt_signed(v):
-    if v is None:
-        return "—"
+    if v is None: return "—"
     try:
         f = float(v)
         return f"{f:+.2f}" if f >= 0 else f"{f:.2f}"
-    except Exception:
-        return "—"
+    except: return "—"
+
+def fmt_signed_pct(v):
+    if v is None: return "—"
+    try:
+        f = float(v)
+        return f"{f:+.2f}%" if f >= 0 else f"{f:.2f}%"
+    except: return "—"
 
 def color_of(v):
-    if v is None:
-        return "#8492a6"
+    if v is None: return "#8492a6"
     try:
         f = float(v)
         if f > 0: return "#e74c3c"
         if f < 0: return "#27ae60"
-    except Exception:
-        pass
+    except: pass
     return "#8492a6"
+
+# ==================== 预警状态 ====================
+def load_alert_state():
+    if os.path.exists(ALERT_STATE_FILE):
+        try:
+            with open(ALERT_STATE_FILE, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[WARN] 读取状态文件失败: {e}")
+    return {
+        "vn_diesel_below_threshold": False,
+        "last_alert_date": None,
+        "threshold": VN_DIESEL_THRESHOLD,
+    }
+
+def save_alert_state(state):
+    try:
+        with open(ALERT_STATE_FILE, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=2)
+        print(f"[INFO] 状态已保存: {state}")
+    except Exception as e:
+        print(f"[WARN] 保存状态失败: {e}")
+
+def check_vn_diesel_alert(cur_price, state, today):
+    """
+    返回 (alert_type, message)
+    alert_type: None / "trigger" / "recover"
+    """
+    below = cur_price < VN_DIESEL_THRESHOLD
+    was_below = state.get("vn_diesel_below_threshold", False)
+    last_date = state.get("last_alert_date")
+
+    # 每天只发一次
+    if last_date == today:
+        return None, None
+
+    # 跌破阈值
+    if below and not was_below:
+        return "trigger", (
+            f"⚠️ 越南柴油 DO 0.05S（区域 1）当前价 <b>{fmt_int(cur_price)} VND/L</b>"
+            f"，已跌破阈值 <b>{fmt_int(VN_DIESEL_THRESHOLD)} VND/L</b>"
+        )
+
+    # 已恢复（之前跌过，现在回升超过阈值）
+    if not below and was_below:
+        return "recover", (
+            f"✅ 越南柴油 DO 0.05S（区域 1）当前价 <b>{fmt_int(cur_price)} VND/L</b>"
+            f"，已回升超过阈值 <b>{fmt_int(VN_DIESEL_THRESHOLD)} VND/L</b>"
+        )
+
+    return None, None
 
 # ==================== 1. 国内 ====================
 def fetch_domestic():
@@ -115,7 +167,12 @@ def fetch_domestic():
             "d0":  latest.get("0号柴油_diff"),
         })
     rows.sort(key=lambda x: x["province"])
-    return rows
+
+    # ★ 全国 0 号柴油平均值
+    p0_vals = [r["p0"] for r in rows if r["p0"] is not None]
+    avg_p0 = sum(p0_vals) / len(p0_vals) if p0_vals else None
+
+    return {"rows": rows, "avg_p0": avg_p0}
 
 # ==================== 2. 香港 ====================
 def fetch_hongkong():
@@ -129,12 +186,12 @@ def fetch_hongkong():
     for fuel_name, brands in open_data.items():
         if not isinstance(brands, dict):
             continue
-        sample_brand = "中石化" if "中石化" in brands else list(brands.keys())[0]
-        retail = brands.get(sample_brand)
+        # ★ 取所有品牌的平均零售价（去掉公司差异）
+        vals = [v for v in brands.values() if isinstance(v, (int, float))]
+        avg_retail = sum(vals) / len(vals) if vals else None
         rows.append({
             "fuel": fuel_name,
-            "brand": sample_brand,
-            "retail": retail,
+            "retail": avg_retail,
         })
     return {
         "date": d.get("date", "—"),
@@ -204,32 +261,35 @@ def fetch_vietnam():
 def build_summary(domestic, hk, intl, vn):
     items = []
 
-    if domestic:
-        target = None
-        for r in domestic:
-            if "北京" in r["province"]:
-                target = r
-                break
-        if not target:
-            target = domestic[0]
+    # 国内柴油（全国平均）
+    if domestic and domestic.get("avg_p0") is not None:
+        # 平均 diff：先算各省 diff 平均（仅用于展示）
+        d0_vals = [r["d0"] for r in domestic["rows"] if r["d0"] is not None]
+        avg_d0 = sum(d0_vals) / len(d0_vals) if d0_vals else None
+        pct = (avg_d0 / (domestic["avg_p0"] - avg_d0) * 100) if avg_d0 and domestic["avg_p0"] else None
+
         items.append({
-            "label": f"国内柴油（{target['province']}）",
+            "label": "国内柴油（全国 31 省平均）",
             "unit": "元/升",
-            "value": target.get("p0"),
-            "diff": target.get("d0"),
+            "value": domestic["avg_p0"],
+            "diff": avg_d0,
+            "pct": pct,
         })
 
+    # 香港柴油（平均零售价，去掉品牌）
     if hk:
         for r in hk["rows"]:
             if "柴油" in r["fuel"]:
                 items.append({
-                    "label": f"香港柴油（{r['brand']}）",
+                    "label": "香港柴油（平均零售价）",
                     "unit": "HKD/升",
                     "value": r["retail"],
                     "diff": None,
+                    "pct": None,
                 })
                 break
 
+    # 国际 WTI / 布伦特
     if intl:
         for r in intl["rows"]:
             items.append({
@@ -237,8 +297,10 @@ def build_summary(domestic, hk, intl, vn):
                 "unit": "美元/桶",
                 "value": r["cur"],
                 "diff": r["diff"],
+                "pct": r["pct"],
             })
 
+    # 越南柴油 05S 区域1
     if vn:
         for r in vn["rows"]:
             if r["prefix"] == "DO005S_M2":
@@ -247,6 +309,7 @@ def build_summary(domestic, hk, intl, vn):
                     "unit": "VND/升",
                     "value": r["z1"],
                     "diff": None,
+                    "pct": None,
                 })
                 break
 
@@ -260,7 +323,12 @@ def build_summary(domestic, hk, intl, vn):
         diff_str = "—"
         if it["diff"] is not None:
             color = color_of(it["diff"])
-            diff_str = f"<span style='color:{color};'>{fmt_signed(it['diff'])}</span>"
+            pct_str = fmt_signed_pct(it["pct"]) if it["pct"] is not None else "—"
+            diff_str = (
+                f"<span style='color:{color};'>"
+                f"{fmt_signed(it['diff'])}（{pct_str}）"
+                f"</span>"
+            )
         val = it["value"]
         val_str = fmt_num(val) if it["unit"] != "VND/升" else fmt_int(val)
         html += (
@@ -268,11 +336,31 @@ def build_summary(domestic, hk, intl, vn):
             f"<td style='color:#5a6b7b;'>{it['label']}</td>"
             f"<td align='right' style='font-weight:600;'>"
             f"{val_str} <span style='color:#8492a6;font-weight:400;'>{it['unit']}</span></td>"
-            f"<td align='right' style='width:120px;'>较上次：{diff_str}</td>"
+            f"<td align='right' style='width:180px;'>较上次：{diff_str}</td>"
             f"</tr>"
         )
     html += "</table></div>"
     return html
+
+# ==================== 预警横幅 ====================
+def build_alert_banner(alert_type, message):
+    if not alert_type:
+        return ""
+    if alert_type == "trigger":
+        bg, border, color, icon = "#fdf0ef", "#f5c6c0", "#c9302c", "⚠️"
+    else:
+        bg, border, color, icon = "#eef9f1", "#b7e4c7", "#27ae60", "✅"
+    return f"""
+    <div style="background:{bg};border:2px solid {border};border-radius:8px;
+                padding:16px 20px;margin-bottom:20px;">
+      <div style="font-size:16px;font-weight:700;color:{color};">
+        {icon} 油价预警
+      </div>
+      <div style="font-size:14px;color:#1f2d3d;margin-top:8px;line-height:1.7;">
+        {message}
+      </div>
+    </div>
+    """
 
 # ==================== 明细 ====================
 def section(title, content):
@@ -284,9 +372,10 @@ def section(title, content):
     </div>
     """
 
-def render_domestic(rows):
-    if not rows:
+def render_domestic(domestic):
+    if not domestic:
         return "<p style='color:#e74c3c'>国内数据读取失败</p>"
+    rows = domestic["rows"]
     html = f"""
     <p style="color:#8492a6;font-size:12px;">共 {len(rows)} 个省市</p>
     <table border="1" cellpadding="8" cellspacing="0"
@@ -318,14 +407,11 @@ def render_hongkong(d):
     <table border="1" cellpadding="8" cellspacing="0"
            style="border-collapse:collapse;font-size:13px;width:100%;">
       <thead style="background:#fafbfc;">
-        <tr><th align="left">油品</th><th>代表品牌</th><th>零售价 (HKD/L)</th></tr>
+        <tr><th align="left">油品</th><th>平均零售价 (HKD/L)</th></tr>
       </thead><tbody>
     """
     for r in d["rows"]:
-        html += (
-            f"<tr><td>{r['fuel']}</td><td align='center'>{r['brand']}</td>"
-            f"<td align='right'>{fmt_num(r['retail'])}</td></tr>"
-        )
+        html += f"<tr><td>{r['fuel']}</td><td align='right'>{fmt_num(r['retail'])}</td></tr>"
     html += "</tbody></table>"
     return html
 
@@ -348,7 +434,7 @@ def render_international(d):
             color = color_of(r["diff"])
             pct_str = (
                 f"<span style='color:{color}'>"
-                f"{fmt_signed(r['diff'])}（{fmt_signed(r['pct'])}%）</span>"
+                f"{fmt_signed(r['diff'])}（{fmt_signed_pct(r['pct'])}）</span>"
             )
         else:
             pct_str = "—"
@@ -388,7 +474,7 @@ def render_vietnam(d):
     return html
 
 # ==================== 拼邮件 ====================
-def build_email():
+def build_email(alert_type=None, alert_msg=None):
     today = bj_now().strftime("%Y-%m-%d")
 
     domestic = fetch_domestic()
@@ -397,6 +483,15 @@ def build_email():
     vn = fetch_vietnam()
 
     summary_html = build_summary(domestic, hk, intl, vn)
+    alert_html = build_alert_banner(alert_type, alert_msg)
+
+    # 邮件标题
+    if alert_type == "trigger":
+        subject = f"⚠️ 越南柴油跌破阈值 · {today}"
+    elif alert_type == "recover":
+        subject = f"✅ 越南柴油回升 · {today}"
+    else:
+        subject = f"【每日油价】{today}"
 
     body = f"""
     <html><body style="font-family:Arial,'Microsoft YaHei',sans-serif;
@@ -406,6 +501,7 @@ def build_email():
         自动推送，数据仅供参考
       </p>
 
+      {alert_html}
       {summary_html}
 
       {section("一、国内各省市油价", render_domestic(domestic))}
@@ -427,29 +523,63 @@ def build_email():
       </p>
     </body></html>
     """
-    return today, body
+    return today, subject, body
 
 # ==================== 发送 ====================
-def main():
-    if not MAIL_USERNAME or not MAIL_PASSWORD:
-        raise SystemExit("缺少 MAIL_USERNAME 或 MAIL_PASSWORD 环境变量")
-
-    today, html = build_email()
-
+def send_mail(subject, html):
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = Header(f"【每日油价】{today}", "utf-8")
+    msg["Subject"] = Header(subject, "utf-8")
     msg["From"] = MAIL_USERNAME
     msg["To"] = RECEIVER_EMAIL
     msg.attach(MIMEText(html, "html", "utf-8"))
 
+    with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT) as server:
+        server.login(MAIL_USERNAME, MAIL_PASSWORD)
+        server.sendmail(MAIL_USERNAME, [RECEIVER_EMAIL], msg.as_string())
+
+def main():
+    if not MAIL_USERNAME or not MAIL_PASSWORD:
+        raise SystemExit("缺少 MAIL_USERNAME 或 MAIL_PASSWORD")
+
+    today = bj_now().strftime("%Y-%m-%d")
+
+    # 1. 拉越南数据，判断预警
+    vn = fetch_vietnam()
+    vn_diesel_z1 = None
+    if vn:
+        for r in vn["rows"]:
+            if r["prefix"] == "DO005S_M2":
+                vn_diesel_z1 = r["z1"]
+                break
+
+    # 2. 读上次状态
+    state = load_alert_state()
+
+    alert_type = None
+    alert_msg = None
+    if vn_diesel_z1 is not None:
+        alert_type, alert_msg = check_vn_diesel_alert(vn_diesel_z1, state, today)
+        print(f"[INFO] 越南柴油 05S 区域1 = {vn_diesel_z1}, 预警类型 = {alert_type}")
+
+    # 3. 拼邮件 + 发送
+    _, subject, html = build_email(alert_type, alert_msg)
     try:
-        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT) as server:
-            server.login(MAIL_USERNAME, MAIL_PASSWORD)
-            server.sendmail(MAIL_USERNAME, [RECEIVER_EMAIL], msg.as_string())
+        send_mail(subject, html)
         print("邮件发送成功 →", RECEIVER_EMAIL)
     except Exception as e:
         print("邮件发送失败:", e)
         raise
+
+    # 4. 更新状态
+    if alert_type:
+        state["vn_diesel_below_threshold"] = (vn_diesel_z1 < VN_DIESEL_THRESHOLD)
+        state["last_alert_date"] = today
+    else:
+        # 每天也要更新 below 状态（以便明天正确判断"回升"）
+        state["vn_diesel_below_threshold"] = (vn_diesel_z1 is not None
+                                              and vn_diesel_z1 < VN_DIESEL_THRESHOLD)
+    state["threshold"] = VN_DIESEL_THRESHOLD
+    save_alert_state(state)
 
 if __name__ == "__main__":
     main()
