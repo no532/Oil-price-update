@@ -2,9 +2,11 @@ name: Daily Fuel Price Email
 
 on:
   schedule:
-    # UTC 01:00 = 北京时间 09:00
     - cron: '0 1 * * *'
-  workflow_dispatch:   # 允许手动触发测试
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   send-email:
@@ -12,6 +14,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -26,3 +30,11 @@ jobs:
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
         run: python scripts/send_email.py
+
+      - name: Commit alert state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scripts/alert_state.json
+          git diff --quiet && git diff --staged --quiet || git commit -m "chore: update alert state [skip ci]"
+          git push
