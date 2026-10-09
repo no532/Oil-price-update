@@ -2,26 +2,20 @@ name: Daily Fuel Price Email
 
 on:
   schedule:
-    # UTC 01:00 = 北京时间 09:00
     - cron: '0 1 * * *'
-  workflow_dispatch:   # 允许手动触发测试
+  workflow_dispatch:
 
 jobs:
   send-email:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Install deps
-        run: pip install requests resend
-
+      - run: pip install requests
       - name: Send email
         env:
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
         run: python scripts/send_email.py
