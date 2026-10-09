@@ -1,0 +1,81 @@
+{
+  "update_time": "2026-10-09 09:58:11",
+  "date": "2026/10/09",
+  "prices": {
+    "E10RON95_M5": {
+      "Z1": 29050,
+      "Z2": 29630,
+      "Avg": 29340.0
+    },
+    "E10RON95_M3": {
+      "Z1": 28250,
+      "Z2": 28810,
+      "Avg": 28530.0
+    },
+    "E5RON92_M2": {
+      "Z1": 27700,
+      "Z2": 28250,
+      "Avg": 27975.0
+    },
+    "DO001S_M5": {
+      "Z1": 30520,
+      "Z2": 31130,
+      "Avg": 30825.0
+    },
+    "DO005S_M2": {
+      "Z1": 29120,
+      "Z2": 29700,
+      "Avg": 29410.0
+    },
+    "Kero2K": {
+      "Z1": 30630,
+      "Z2": 31240,
+      "Avg": 30935.0
+    }
+  },
+  "changes": {
+    "E10RON95_M5": {
+      "prev": null,
+      "year_start": null,
+      "last_year": null
+    },
+    "E10RON95_M3": {
+      "prev": null,
+      "year_start": null,
+      "last_year": null
+    },
+    "E5RON92_M2": {
+      "prev": null,
+      "year_start": null,
+      "last_year": null
+    },
+    "DO001S_M5": {
+      "prev": null,
+      "year_start": null,
+      "last_year": null
+    },
+    "DO005S_M2": {
+      "prev": null,
+      "year_start": null,
+      "last_year": null
+    },
+    "Kero2K": {
+      "prev": null,
+      "year_start": null,
+      "last_year": null
+    },
+    "__AVERAGE__": {
+      "prev": null,
+      "year_start": null,
+      "last_year": null
+    }
+  },
+  "fuel_names": {
+    "E10RON95_M5": "汽油 E10 RON 95（5 级）",
+    "E10RON95_M3": "汽油 E10 RON 95（3 级）",
+    "E5RON92_M2": "汽油 E5 RON 92（2 级）",
+    "DO001S_M5": "柴油 DO 0.001S（5 级）",
+    "DO005S_M2": "柴油 DO 0.05S（2 级）",
+    "Kero2K": "煤油 2-K"
+  }
+}

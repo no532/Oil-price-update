@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>越南燃油价格</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,"Microsoft YaHei",sans-serif; background:#f0f2f5; }
+  .wrap { padding:24px; max-width:1300px; margin:0 auto; }
+  h1 { text-align:center; font-size:26px; margin:8px 0 6px; font-weight:600; }
+  .subtitle { text-align:center; font-size:13px; color:#b0b8c1; margin-bottom:24px; }
+
+  .global-filter {
+    display:flex; align-items:center; gap:12px;
+    background:#fff; border-radius:8px; padding:14px 20px;
+    margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .global-filter label { font-size:14px; color:#5a6b7b; font-weight:600; }
+  .global-filter input[type="date"] {
+    padding:8px 14px; border:1px solid #dcdfe6; border-radius:4px;
+    font-size:14px; color:#1f2d3d;
+  }
+  .global-filter__hint { font-size:12px; color:#b0b8c1; margin-left:auto; }
+
+  /* ===== 燃油表格 ===== */
+  .fuel-table-box {
+    background:#fff; border-radius:12px; padding:20px;
+    margin-bottom:28px; box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .fuel-table-box h2 {
+    font-size:16px; margin:0 0 12px; font-weight:600; color:#1f2d3d;
+    border-left:4px solid #c9302c; padding-left:10px;
+  }
+  .fuel-table { width:100%; border-collapse:collapse; font-size:14px; }
+  .fuel-table thead th {
+    padding:12px 16px; background:#fafbfc; color:#1f2d3d;
+    font-weight:600; text-align:left; border-bottom:2px solid #e4e7ed;
+  }
+  .fuel-table thead th:nth-child(n+2) { text-align:center; }
+  .fuel-table tbody td { padding:14px 16px; border-bottom:1px solid #f0f2f5; }
+  .fuel-table tbody td:nth-child(n+2) { text-align:center; font-weight:600; }
+  .fuel-table tbody tr:last-child td { border-bottom:none; }
+  .fuel-table tbody tr:hover td { background:#fafbfc; }
+  .fuel-table .unit { font-size:12px; color:#8492a6; font-weight:400; margin-left:2px; }
+
+  .fuel-table .th-sub {
+    display: block;
+    font-size: 11px;
+    color: #8492a6;
+    font-weight: 400;
+    margin-top: 2px;
+  }
+
+  .fuel-name-wrap { display:flex; align-items:center; gap:10px; }
+  .fuel-dot {
+    display:inline-block; width:8px; height:8px; border-radius:50%;
+    flex-shrink:0;
+  }
+  .fuel-dot--do005s { background:#8e44ad; }
+  .fuel-dot--do001s { background:#2c3e50; }
+  .fuel-dot--e10m5  { background:#409eff; }
+  .fuel-dot--e10m3  { background:#67c23a; }
+  .fuel-dot--e5m2   { background:#e6a23c; }
+  .fuel-dot--kero2k { background:#f56c6c; }
+  .fuel-name { font-weight:600; color:#1f2d3d; }
+  .fuel-trait {
+    font-size:11px; color:#8492a6; font-weight:400;
+    background:#f4f4f5; padding:1px 6px; border-radius:3px;
+  }
+
+  /* 折合人民币列：蓝色高亮 */
+  .fuel-table .col-cny { background:#ecf5ff; color:#409eff; }
+  .fuel-table .col-cny .unit { color:#7fb6f0; }
+
+  /* 涨跌双行 */
+  .chg-cell .chg-val { display:block; font-weight:600; }
+  .chg-cell .chg-pct { display:block; font-size:12px; font-weight:400; }
+
+  .fuel-note {
+    margin-top:14px; padding-top:12px;
+    border-top:1px dashed #e4e7ed;
+    font-size:12px; color:#8492a6; line-height:1.8;
+  }
+
+  /* ===== 图表 ===== */
+  .chart-box {
+    background:#fff; border-radius:12px; padding:20px;
+    margin-bottom:24px; box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .chart-box h2 {
+    font-size:16px; margin:0 0 12px; font-weight:600; color:#1f2d3d;
+    border-left:4px solid #c9302c; padding-left:10px;
+  }
+  .chart { width:100%; height:380px; }
+
+  .fuel-tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+  .fuel-tab {
+    padding:6px 16px; border:1px solid #dcdfe6; background:#fff;
+    border-radius:4px; cursor:pointer; font-size:13px; color:#5a6b7b;
+    transition:.15s;
+  }
+  .fuel-tab:hover { border-color:#409eff; color:#409eff; }
+  .fuel-tab.active { background:#409eff; color:#fff; border-color:#409eff; }
+
+  /* ===== 说明框 ===== */
+  .info-box {
+    background:#fffdf5; border:1px solid #f5ebd0; border-radius:12px;
+    padding:20px 24px; margin-bottom:24px;
+    box-shadow:0 2px 8px rgba(0,0,0,.03);
+  }
+  .info-box h2 {
+    font-size:16px; margin:0 0 14px; font-weight:600; color:#8a6d1f;
+    border-left:4px solid #e8c96a; padding-left:10px;
+  }
+  .info-box h3 { font-size:14px; margin:18px 0 10px; font-weight:600; color:#8a6d1f; }
+  .info-box h3:first-of-type { margin-top:0; }
+  .info-table { width:100%; border-collapse:collapse; font-size:13px; table-layout:auto; }
+  .info-table th {
+    padding:9px 14px; background:#fdf6e0; color:#8a6d1f;
+    font-weight:600; text-align:left; border-bottom:1px solid #f0e4bf;
+    white-space:nowrap;
+  }
+  .info-table td { padding:10px 14px; border-bottom:1px solid #f8f0d8; vertical-align:top; line-height:1.7; color:#5c4d22; }
+  .info-table tr:last-child td { border-bottom:none; }
+  .info-table th:first-child,
+  .info-table td:first-child { white-space:nowrap; min-width:360px; }
+
+  .info-text { font-size:13px; color:#5c4d22; line-height:1.9; }
+  .info-text b { color:#8a6d1f; }
+
+  .info-source {
+    margin-top:16px; padding-top:12px;
+    border-top:1px dashed #f0e4bf;
+    font-size:12px; color:#a89663; line-height:1.8;
+  }
+
+  /* ===== 历史价格表格 ===== */
+  .history-box {
+    background:#fff; border-radius:12px; padding:20px 24px;
+    margin-bottom:24px; box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .history-box h2 {
+    font-size:16px; margin:0 0 14px; font-weight:600; color:#1f2d3d;
+    border-left:4px solid #c9302c; padding-left:10px;
+  }
+  .history-toolbar {
+    display:flex; flex-wrap:wrap; align-items:center; gap:12px;
+    margin-bottom:16px;
+  }
+  .history-toolbar label { font-size:13px; color:#5a6b7b; }
+  .history-toolbar select {
+    padding:6px 12px; border:1px solid #dcdfe6; border-radius:4px;
+    font-size:13px; color:#1f2d3d; background:#fff;
+  }
+  .export-btn {
+    padding:6px 18px; border:1px solid #409eff; background:#409eff;
+    color:#fff; border-radius:4px; cursor:pointer; font-size:13px;
+  }
+  .export-btn:hover { background:#307ecc; }
+  .toggle-btn-light {
+    padding:6px 18px; border:1px solid #409eff; background:#fff;
+    color:#409eff; border-radius:4px; cursor:pointer; font-size:13px;
+  }
+  .toggle-btn-light:hover { background:#ecf5ff; }
+
+  .history-table-wrap { max-height:520px; overflow:auto; border:1px solid #e4e7ed; border-radius:6px; }
+  .history-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .history-table th {
+    position:sticky; top:0; z-index:1;
+    padding:10px 14px; background:#fafbfc; color:#1f2d3d;
+    font-weight:600; text-align:center; border-bottom:2px solid #e4e7ed;
+    white-space:nowrap;
+  }
+  .history-table th:first-child { text-align:left; }
+  .history-table td {
+    padding:9px 14px; border-bottom:1px solid #f0f2f5;
+    text-align:center; white-space:nowrap;
+  }
+  .history-table td:first-child { text-align:left; font-weight:600; }
+  .history-table tr:last-child td { border-bottom:none; }
+  .history-table tbody tr:hover { background:#f7fbff; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>越南燃油价格</h1>
+  <div class="subtitle" id="updateTime">加载中…</div>
+
+  <div class="global-filter">
+    <label>查看日期：</label>
+    <input type="date" id="globalDate">
+    <span class="global-filter__hint" id="globalDateHint"></span>
+  </div>
+
+  <div class="fuel-table-box">
+    <h2>燃油产品价格（越南盾/升）</h2>
+    <table class="fuel-table">
+      <thead>
+        <tr>
+          <th>燃油产品</th>
+          <th>区域 1</th>
+          <th>区域 2</th>
+          <th class="col-cny">折合人民币<span class="th-sub">（区域 1）</span></th>
+          <th>较上期<span class="th-sub">（区域 1）</span></th>
+          <th>较今年 1 月<span class="th-sub">（区域 1）</span></th>
+          <th>较去年同期<span class="th-sub">（区域 1）</span></th>
+        </tr>
+      </thead>
+      <tbody id="fuelTableBody">
+        <tr><td colspan="7" style="text-align:center;color:#b0b8c1;padding:20px;">加载中…</td></tr>
+      </tbody>
+    </table>
+    <div class="fuel-note">
+      单位：越南盾（VND）/升；数据来源：Petrolimex（越南国家石油集团）<br>
+      折合人民币：按 <b id="rateDisplay">加载中…</b> 实时汇率换算。<br>
+      较上期 / 较今年 1 月 / 较去年同期：均基于<b>区域 1 越南盾价格</b>计算。<br>
+      最后更新：<span id="fuelUpdateDate">—</span>
+    </div>
+  </div>
+
+  <div class="chart-box" id="mainChartBox">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:12px;">
+      <h2 style="margin:0;" id="mainChartTitle">历史走势</h2>
+    </div>
+    <div class="fuel-tabs" id="fuelTabs"></div>
+    <div id="mainChart" class="chart"></div>
+  </div>
+
+  <div class="history-box">
+    <h2>历史价格表</h2>
+    <div class="history-toolbar">
+      <label>选择油品：</label>
+      <select id="historyFuelSelect">
+        <option value="__ALL__">全部油品</option>
+      </select>
+      <label>区域：</label>
+      <select id="historyZoneSelect">
+        <option value="Z1">区域 1</option>
+        <option value="Z2">区域 2</option>
+      </select>
+      <button class="toggle-btn-light" id="toggleHistoryBtn">展开表格</button>
+      <button class="export-btn" id="exportBtn">导出 CSV</button>
+      <span style="font-size:12px;color:#b0b8c1;margin-left:auto;" id="historyCount"></span>
+    </div>
+    <div class="history-table-wrap" id="historyTableWrap" style="display:none;">
+      <table class="history-table" id="historyTable">
+        <thead id="historyThead"></thead>
+        <tbody id="historyTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="info-box">
+    <h2>油品与区域说明</h2>
+    <h3>一、油品说明</h3>
+    <table class="info-table">
+      <thead>
+        <tr><th>油品</th><th>说明</th></tr>
+      </thead>
+      <tbody id="specTableBody"></tbody>
+    </table>
+
+    <h3>二、区域划分说明</h3>
+    <div class="info-text">
+      <b>区域 1</b>：河内、胡志明市、海防、岘港等大城市 + 周边地区；<br>
+      <b>区域 2</b>：山区、高原、边境省份（如莱州、山萝、昆嵩）等偏远地区，含运输成本。
+    </div>
+
+    <h3>三、区域划分依据</h3>
+    <div class="info-text">
+      区域划分依据 <b>越南工贸部（Bộ Công Thương）</b> 与 <b>越南财政部（Bộ Tài chính）</b> 联合发布的燃油价格管理法规，
+      以及 <b>Petrolimex（越南国家石油集团）</b> 公布的地区定价体系。<br><br>
+      核心法规与依据：<br>
+      · <b>Decree 83/2014/ND-CP</b>（2014 年 9 月 3 日）——关于燃油经营的第 83/2014/ND-CP 号政府法令，规定燃油价格由市场机制决定，国家仅在必要时通过价格平稳基金进行干预；<br>
+      · <b>Decree 95/2021/ND-CP</b>（2021 年 11 月 1 日）——修订 83/2014/ND-CP，进一步明确价格构成（进口成本 + 税费 + 运输 + 利润）；<br>
+      · <b>Circular 104/2021/TT-BTC</b>——财政部关于燃油价格申报与公示的规定；<br>
+      · <b>Petrolimex 地区定价公告</b>——将全国划分为不同运输成本区域，区域 2 因地处山区、高原、边境，运输距离远、道路条件差，价格通常比区域 1 高约 <b>500~600 越南盾/升</b>（约 1.5~2%）。
+    </div>
+
+    <h3>四、油品等级依据</h3>
+    <div class="info-text">
+      柴油硫含量分级依据 <b>越南国家标准 TCVN 5689:2013</b>（对应欧 II / 欧 V 排放标准）；<br>
+      汽油乙醇含量分级依据 <b>越南政府 2021 年 E5/E10 推广政策</b>及 <b>TCVN 8063:2009</b>；<br>
+      煤油标准依据 <b>TCVN 6241:2011</b>（照明 / 取暖 / 喷气燃料）。
+    </div>
+
+    <div class="info-source">
+      数据来源：Petrolimex 官方公告、越南工贸部（moit.gov.vn）、越南财政部（mof.gov.vn）、越南国家标准 TCVN。<br>
+      说明：本页展示的价格为参考值，实际交易价格以 Petrolimex 及各地区加油站当日公示为准。
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script>
+// ============== 汇率 ==============
+let VND_PER_CNY = 3863.8;
+let rateUpdatedAt = '';
+
+async function fetchExchangeRate() {
+  const urls = [
+    'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/vnd.json',
+    'https://latest.currency-api.pages.dev/v1/currencies/vnd.json'
+  ];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { cache: 'no-cache' });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const vndToCny = data.vnd && data.vnd.cny;
+      if (vndToCny && vndToCny > 0) {
+        VND_PER_CNY = 1 / vndToCny;
+        rateUpdatedAt = data.date || new Date().toISOString().slice(0, 10);
+        return true;
+      }
+    } catch (e) { console.warn('汇率接口失败：', url); }
+  }
+  return false;
+}
+
+// ============== 油品定义 ==============
+const PREFIX_ORDER = ['DO005S_M2','DO001S_M5','E10RON95_M5','E10RON95_M3','E5RON92_M2','Kero2K'];
+
+const FUEL_DOT_CLASS = {
+  'DO005S_M2':'fuel-dot--do005s', 'DO001S_M5':'fuel-dot--do001s',
+  'E10RON95_M5':'fuel-dot--e10m5', 'E10RON95_M3':'fuel-dot--e10m3',
+  'E5RON92_M2':'fuel-dot--e5m2', 'Kero2K':'fuel-dot--kero2k'
+};
+
+const FUEL_SPECS = {
+  'DO005S_M2': { name:'柴油 DO 0,05S（2 级）', trait:'普通标准', desc:'硫含量 ≤ 0.05%（500 ppm），普通标准（欧 II），物流车队最常用。' },
+  'DO001S_M5': { name:'柴油 DO 0,001S（5 级）', trait:'最高标准', desc:'硫含量 ≤ 0.001%（10 ppm），最高标准（欧 V），价格最贵。' },
+  'E10RON95_M5': { name:'汽油 E10 RON 95（5 级）', trait:'最高级', desc:'95 号汽油 + 10% 乙醇，辛烷值 95，最高级。' },
+  'E10RON95_M3': { name:'汽油 E10 RON 95（3 级）', trait:'标准级', desc:'95 号汽油 + 10% 乙醇，辛烷值 95，标准级。' },
+  'E5RON92_M2': { name:'汽油 E5 RON 92（2 级）', trait:'经济型', desc:'92 号汽油 + 5% 乙醇，辛烷值 92，经济型。' },
+  'Kero2K': { name:'煤油 2-K', trait:'照明/取暖', desc:'煤油，用于照明、取暖、部分喷气燃料。' }
+};
+
+let data = null;
+let historyRows = [];
+let historyByDate = {};
+let selectedDate = null;
+let mainChart = null;
+let currentFuelPrefix = 'DO005S_M2';
+let selectedHistoryFuel = '__ALL__';
+let selectedHistoryZone = 'Z1';
+
+// ============== 日期归一化 ==============
+function normalizeDateKey(s) {
+  const parts = String(s || '').split('/');
+  if (parts.length !== 3) return null;
+  const y = parseInt(parts[0]);
+  const m = parseInt(parts[1]);
+  const d = parseInt(parts[2]);
+  if (!y || !m || !d) return null;
+  return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+function normalizeInputKey(s) {
+  const parts = String(s || '').split('-');
+  if (parts.length !== 3) return null;
+  const y = parseInt(parts[0]);
+  const m = parseInt(parts[1]);
+  const d = parseInt(parts[2]);
+  if (!y || !m || !d) return null;
+  return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+function keyToDisplay(key) {
+  const [y, m, d] = key.split('-').map(n => parseInt(n));
+  return `${y}/${m}/${d}`;
+}
+function keyToDate(key) {
+  const [y, m, d] = key.split('-').map(n => parseInt(n));
+  return new Date(y, m - 1, d);
+}
+function dateToInputStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+function round2(v) { return Math.round(v * 100) / 100; }
+
+function fmtVND(v) {
+  if (v == null || isNaN(v)) return '—';
+  return Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+function fmtCNY(v) {
+  if (v == null || isNaN(v)) return '—';
+  return v.toFixed(2);
+}
+
+// ============== 数据加载 ==============
+async function load() {
+  try {
+    const res = await fetch('vietnam_fuel.json?_=' + Date.now());
+    data = await res.json();
+    renderAll();
+  } catch (e) {
+    document.getElementById('updateTime').textContent = '读取 vietnam_fuel.json 失败';
+    console.error(e);
+  }
+}
+
+async function loadHistory() {
+  try {
+    const res = await fetch('越南历史油价.csv?_=' + Date.now());
+    const text = await res.text();
+    return parseCSV(text);
+  } catch (e) {
+    console.warn('历史 CSV 加载失败', e);
+    return null;
+  }
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  const headers = lines[0].split(',').map(s => s.trim());
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cells = lines[i].split(',').map(s => s.trim());
+    if (cells.length < headers.length) continue;
+    const row = {};
+    headers.forEach((h, idx) => row[h] = cells[idx]);
+    rows.push(row);
+  }
+  return { headers, rows };
+}
+
+function getDataForDate(dateISO) {
+  if (!dateISO || !data) {
+    return {
+      prices: data.prices || {},
+      changes: data.changes || {},
+      date: data.date,
+      isHistory: false,
+    };
+  }
+  const key = normalizeInputKey(dateISO);
+  if (!key) return null;
+
+  const row = historyByDate[key];
+  if (!row) {
+    return { date: keyToDisplay(key), missing: true, prices: {}, changes: {}, isHistory: true };
+  }
+
+  const prices = {};
+  for (const prefix of PREFIX_ORDER) {
+    const z1 = parseFloat(row[`${prefix}_Z1`]);
+    const z2 = parseFloat(row[`${prefix}_Z2`]);
+    if (isNaN(z1) && isNaN(z2)) continue;
+    prices[prefix] = {
+      Z1: isNaN(z1) ? null : z1,
+      Z2: isNaN(z2) ? null : z2,
+    };
+  }
+
+  const changes = calcChangesForKey(key);
+  return { prices, changes, date: keyToDisplay(key), isHistory: true };
+}
+
+function calcChangesForKey(key) {
+  const result = {};
+  const row = historyByDate[key];
+  if (!row) return result;
+
+  const targetDate = keyToDate(key);
+  if (!targetDate) return result;
+
+  const lyDate = new Date(targetDate);
+  lyDate.setFullYear(lyDate.getFullYear() - 1);
+
+  const sortedKeys = Object.keys(historyByDate).sort((a, b) => keyToDate(a) - keyToDate(b));
+  const idx = sortedKeys.indexOf(key);
+
+  for (const prefix of PREFIX_ORDER) {
+    const col = `${prefix}_Z1`;
+    const todayVal = parseFloat(row[col]);
+    if (isNaN(todayVal)) { result[prefix] = {pct:{}, abs:{}}; continue; }
+
+    const r = { prev: null, year_start: null, last_year: null };
+    const rAbs = { prev: null, year_start: null, last_year: null };
+
+    for (let i = idx - 1; i >= 0; i--) {
+      const v = parseFloat(historyByDate[sortedKeys[i]][col]);
+      if (!isNaN(v) && Math.abs(v - todayVal) > 0.5) {
+        r.prev = round2((todayVal - v) / v * 100);
+        rAbs.prev = round2(todayVal - v);
+        break;
+      }
+    }
+    const year = targetDate.getFullYear();
+    for (let i = 0; i < sortedKeys.length; i++) {
+      const d = keyToDate(sortedKeys[i]);
+      if (d && d.getFullYear() === year && d.getMonth() === 0) {
+        const v = parseFloat(historyByDate[sortedKeys[i]][col]);
+        if (!isNaN(v)) {
+          r.year_start = round2((todayVal - v) / v * 100);
+          rAbs.year_start = round2(todayVal - v);
+        }
+        break;
+      }
+    }
+    let best = null, bestDiff = Infinity;
+    for (const k of sortedKeys) {
+      const d = keyToDate(k);
+      if (!d || d.getFullYear() !== lyDate.getFullYear()) continue;
+      const diff = Math.abs(d - lyDate);
+      if (diff < bestDiff) { bestDiff = diff; best = k; }
+    }
+    if (best) {
+      const v = parseFloat(historyByDate[best][col]);
+      if (!isNaN(v)) {
+        r.last_year = round2((todayVal - v) / v * 100);
+        rAbs.last_year = round2(todayVal - v);
+      }
+    }
+    result[prefix] = { pct: r, abs: rAbs };
+  }
+
+  return result;
+}
+
+async function renderAll() {
+  if (!data) return;
+  if (!rateUpdatedAt) await fetchExchangeRate();
+
+  document.getElementById('updateTime').textContent =
+    '更新时间：' + data.update_time + '（数据日期：' + data.date + '）';
+  document.getElementById('rateDisplay').textContent =
+    `1 CNY = ${VND_PER_CNY.toFixed(2)} VND（${rateUpdatedAt || ''}）`;
+
+  try {
+    const hist = await loadHistory();
+    if (hist && hist.rows && hist.rows.length > 0) {
+      historyRows = hist.rows.slice();
+      historyRows.sort((a, b) => {
+        const ka = normalizeDateKey(a['Date']);
+        const kb = normalizeDateKey(b['Date']);
+        return (ka && kb) ? keyToDate(ka) - keyToDate(kb) : 0;
+      });
+      historyByDate = {};
+      historyRows.forEach(r => {
+        const key = normalizeDateKey(r['Date']);
+        if (key) historyByDate[key] = r;
+      });
+      setupGlobalDateFilter();
+    }
+  } catch (e) {
+    console.error('loadHistory 失败', e);
+  }
+
+  let view = null;
+  try {
+    view = getDataForDate(selectedDate);
+  } catch (e) {
+    view = { prices: data.prices || {}, changes: data.changes || {}, date: data.date };
+  }
+
+  try { renderFuelTable(view, data.fuel_names || {}); } catch (e) { console.error(e); }
+  try { renderFuelTabs(); } catch (e) { console.error(e); }
+  try { renderMainChart(); } catch (e) { console.error(e); }
+  try { renderSpecTable(); } catch (e) { console.error(e); }
+  try { renderHistoryTable(); } catch (e) { console.error(e); }
+}
+
+function setupGlobalDateFilter() {
+  const input = document.getElementById('globalDate');
+  const hint = document.getElementById('globalDateHint');
+  const keys = Object.keys(historyByDate).sort((a, b) => keyToDate(a) - keyToDate(b));
+  if (keys.length === 0) return;
+
+  const first = keyToDate(keys[0]);
+  const last = keyToDate(keys[keys.length - 1]);
+
+  input.min = dateToInputStr(first);
+  input.max = dateToInputStr(last);
+  if (!input.value) {
+    input.value = dateToInputStr(last);
+    selectedDate = input.value;
+  }
+  hint.textContent = `可选范围：${dateToInputStr(first)} ~ ${dateToInputStr(last)}`;
+
+  input.onchange = () => {
+    selectedDate = input.value || null;
+    renderAll();
+  };
+}
+
+// ============== 表格 ==============
+function renderFuelTable(view, fuelNames) {
+  const tbody = document.getElementById('fuelTableBody');
+  const dateEl = document.getElementById('fuelUpdateDate');
+  tbody.innerHTML = '';
+
+  for (const prefix of PREFIX_ORDER) {
+    const p = (view.prices && view.prices[prefix]) || {};
+    const c = (view.changes && view.changes[prefix]) || {};
+    const spec = FUEL_SPECS[prefix] || { name: fuelNames[prefix] || prefix, trait: '' };
+    const dotCls = FUEL_DOT_CLASS[prefix] || '';
+    const cny = (p.Z1 != null) ? (p.Z1 / VND_PER_CNY) : null;
+
+    tbody.innerHTML += `
+      <tr>
+        <td>
+          <div class="fuel-name-wrap">
+            <span class="fuel-dot ${dotCls}"></span>
+            <span class="fuel-name">${spec.name}</span>
+            ${spec.trait ? `<span class="fuel-trait">${spec.trait}</span>` : ''}
+          </div>
+        </td>
+        <td>${fmtVND(p.Z1)}<span class="unit">VND/L</span></td>
+        <td>${fmtVND(p.Z2)}<span class="unit">VND/L</span></td>
+        <td class="col-cny">${fmtCNY(cny)}<span class="unit">CNY/L</span></td>
+        <td>${fmtChangeCell(c.abs && c.abs.prev, c.pct && c.pct.prev)}</td>
+        <td>${fmtChangeCell(c.abs && c.abs.year_start, c.pct && c.pct.year_start)}</td>
+        <td>${fmtChangeCell(c.abs && c.abs.last_year, c.pct && c.pct.last_year)}</td>
+      </tr>`;
+  }
+
+  dateEl.textContent = (view && view.date) || '—';
+}
+
+function fmtChangeCell(absVal, pctVal) {
+  if (absVal == null && pctVal == null) {
+    return `<span style="color:#8492a6;">—</span>`;
+  }
+  const color = (absVal > 0 || pctVal > 0) ? '#e74c3c'
+              : (absVal < 0 || pctVal < 0) ? '#27ae60'
+              : '#8492a6';
+  const signAbs = absVal > 0 ? '+' : '';
+  const signPct = pctVal > 0 ? '+' : '';
+  const absText = absVal == null ? '—' : `${signAbs}${fmtVND(absVal)}<span class="unit">VND/L</span>`;
+  const pctText = pctVal == null ? '—' : `${signPct}${pctVal.toFixed(2)}%`;
+  return `<span class="chg-cell" style="color:${color};">
+    <span class="chg-val">${absText}</span>
+    <span class="chg-pct">${pctText}</span>
+  </span>`;
+}
+
+function renderFuelTabs() {
+  const box = document.getElementById('fuelTabs');
+  box.innerHTML = '';
+  for (const prefix of PREFIX_ORDER) {
+    const spec = FUEL_SPECS[prefix] || { name: prefix };
+    const btn = document.createElement('button');
+    btn.className = 'fuel-tab' + (prefix === currentFuelPrefix ? ' active' : '');
+    btn.textContent = spec.name;
+    btn.onclick = () => {
+      currentFuelPrefix = prefix;
+      document.querySelectorAll('.fuel-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderMainChart();
+    };
+    box.appendChild(btn);
+  }
+}
+
+function renderMainChart() {
+  const prefix = currentFuelPrefix;
+  const spec = FUEL_SPECS[prefix] || { name: '燃油' };
+
+  if (!mainChart) mainChart = echarts.init(document.getElementById('mainChart'));
+  document.getElementById('mainChartTitle').textContent = `历史走势（${spec.name}）`;
+
+  if (!historyRows || historyRows.length === 0) {
+    mainChart.clear();
+    mainChart.setOption({
+      title: { text: '暂无历史数据', left: 'center', top: 'center',
+        textStyle: { color: '#b0b8c1', fontSize: 14, fontWeight: 'normal' } }
+    });
+    return;
+  }
+
+  const xData = historyRows.map(r => r['Date'] || '');
+  const series = [
+    { name: '区域 1', col: `${prefix}_Z1`, color: '#409eff' },
+    { name: '区域 2', col: `${prefix}_Z2`, color: '#e6a23c' },
+  ];
+
+  const echartSeries = series.map(s => ({
+    name: s.name,
+    type: 'line', smooth: true, symbol: 'circle', symbolSize: 4,
+    connectNulls: true,
+    lineStyle: { width: 2, color: s.color },
+    itemStyle: { color: s.color },
+    data: historyRows.map(r => {
+      const v = r[s.col];
+      return v ? parseFloat(v) : null;
+    })
+  }));
+
+  mainChart.setOption({
+    tooltip: {
+      trigger: 'axis',
+      formatter: function(params) {
+        let html = params[0].axisValue + '<br/>';
+        params.forEach(p => {
+          if (p.value != null) html += `${p.marker}${p.seriesName}：${fmtVND(p.value)} VND/L<br/>`;
+        });
+        return html;
+      }
+    },
+    legend: { top: 0, data: series.map(s => s.name) },
+    grid: { left: 80, right: 30, top: 40, bottom: 70 },
+    xAxis: {
+      type: 'category', data: xData,
+      axisLabel: { fontSize: 11, rotate: 30,
+        interval: Math.max(0, Math.floor(xData.length / 15) - 1) }
+    },
+    yAxis: {
+      type: 'value', name: 'VND/L', scale: true,
+      axisLabel: { formatter: v => fmtVND(v) }
+    },
+    series: echartSeries
+  }, true);
+  mainChart.resize();
+}
+
+function renderSpecTable() {
+  const tbody = document.getElementById('specTableBody');
+  tbody.innerHTML = '';
+  for (const prefix of PREFIX_ORDER) {
+    const spec = FUEL_SPECS[prefix] || { name: prefix, desc: '—' };
+    tbody.innerHTML += `
+      <tr>
+        <td><b>${spec.name}</b>${spec.trait ? `（${spec.trait}）` : ''}</td>
+        <td>${spec.desc}</td>
+      </tr>`;
+  }
+}
+
+// ============== 历史价格表格 ==============
+function renderHistoryTable() {
+  const select = document.getElementById('historyFuelSelect');
+
+  if (select.options.length <= 1) {
+    for (const prefix of PREFIX_ORDER) {
+      const spec = FUEL_SPECS[prefix] || { name: prefix };
+      const opt = document.createElement('option');
+      opt.value = prefix;
+      opt.textContent = spec.name;
+      select.appendChild(opt);
+    }
+  }
+
+  select.onchange = () => {
+    selectedHistoryFuel = select.value;
+    renderHistoryTable();
+    autoExpandHistory();
+  };
+
+  const zoneSelect = document.getElementById('historyZoneSelect');
+  zoneSelect.value = selectedHistoryZone;
+  zoneSelect.onchange = () => {
+    selectedHistoryZone = zoneSelect.value;
+    renderHistoryTable();
+    autoExpandHistory();
+  };
+
+  const thead = document.getElementById('historyThead');
+  const tbody = document.getElementById('historyTbody');
+  const countEl = document.getElementById('historyCount');
+  thead.innerHTML = '';
+  tbody.innerHTML = '';
+
+  const sortedKeys = Object.keys(historyByDate).sort((a, b) => keyToDate(b) - keyToDate(a));
+
+  let columns = [];
+  if (selectedHistoryFuel === '__ALL__') {
+    for (const prefix of PREFIX_ORDER) {
+      const spec = FUEL_SPECS[prefix] || { name: prefix };
+      columns.push({ key: `${prefix}_${selectedHistoryZone}`, label: spec.name });
+    }
+  } else {
+    const prefix = selectedHistoryFuel;
+    const spec = FUEL_SPECS[prefix] || { name: prefix };
+    columns.push({ key: `${prefix}_${selectedHistoryZone}`, label: spec.name });
+  }
+
+  thead.innerHTML = `<tr><th>日期</th>${columns.map(c => `<th>${c.label}</th>`).join('')}</tr>`;
+
+  let count = 0;
+  for (const k of sortedKeys) {
+    const row = historyByDate[k];
+    if (!row) continue;
+    let hasValue = false;
+    const cells = columns.map(c => {
+      const v = parseFloat(row[c.key]);
+      if (!isNaN(v)) hasValue = true;
+      return `<td>${isNaN(v) ? '—' : fmtVND(v)}</td>`;
+    });
+    if (!hasValue) continue;
+    tbody.innerHTML += `<tr><td>${keyToDisplay(k)}</td>${cells.join('')}</tr>`;
+    count++;
+  }
+
+  countEl.textContent = `共 ${count} 条记录`;
+  document.getElementById('exportBtn').onclick = () => exportHistoryCSV(columns, sortedKeys);
+}
+
+function autoExpandHistory() {
+  const wrap = document.getElementById('historyTableWrap');
+  const btn = document.getElementById('toggleHistoryBtn');
+  if (wrap.style.display === 'none') {
+    wrap.style.display = 'block';
+    btn.textContent = '收起表格';
+  }
+}
+
+document.getElementById('toggleHistoryBtn').onclick = () => {
+  const wrap = document.getElementById('historyTableWrap');
+  const btn = document.getElementById('toggleHistoryBtn');
+  if (wrap.style.display === 'none') {
+    wrap.style.display = 'block';
+    btn.textContent = '收起表格';
+  } else {
+    wrap.style.display = 'none';
+    btn.textContent = '展开表格';
+  }
+};
+
+function exportHistoryCSV(columns, sortedKeys) {
+  const header = ['日期', ...columns.map(c => c.label)];
+  const lines = [header.join(',')];
+
+  for (const k of sortedKeys) {
+    const row = historyByDate[k];
+    if (!row) continue;
+    const cells = [keyToDisplay(k)];
+    let hasValue = false;
+    for (const c of columns) {
+      const v = parseFloat(row[c.key]);
+      if (!isNaN(v)) hasValue = true;
+      cells.push(isNaN(v) ? '' : v);
+    }
+    if (!hasValue) continue;
+    lines.push(cells.join(','));
+  }
+
+  const csv = '\uFEFF' + lines.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const zoneLabel = selectedHistoryZone === 'Z1' ? '区域1' : '区域2';
+  const fuelLabel = selectedHistoryFuel === '__ALL__'
+    ? '全部油品'
+    : ((FUEL_SPECS[selectedHistoryFuel] && FUEL_SPECS[selectedHistoryFuel].name) || selectedHistoryFuel);
+  a.download = `越南油价_${fuelLabel}_${zoneLabel}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ============== 初始化 ==============
+load();
+
+window.addEventListener('resize', () => {
+  mainChart && mainChart.resize();
+});
+</script>
+</body>
+</html>
