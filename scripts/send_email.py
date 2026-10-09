@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 
 # ==================== 配置 ====================
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
-RECEIVER_EMAIL = "Lissie.Liu@luxshare-ict.com"       # ★ 收件邮箱
+RECEIVER_EMAIL = "1903859410@qq.com"       # ★ 收件邮箱
 SENDER_EMAIL   = "onboarding@resend.dev"              # Resend 测试发件地址
 
 # GitHub Pages 域名
