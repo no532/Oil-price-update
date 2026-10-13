@@ -23,6 +23,7 @@ SMTP_HOST = "smtp.163.com"
 SMTP_PORT = 465
 
 RECEIVER_EMAIL = "Lissie.Liu@luxshare-ict.com"
+                 "Claire-XJ.Wang@luxshare-ict.com"
 
 BASE_URL = "https://no532.github.io/Oil-price-update"
 LOCAL_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -526,7 +527,7 @@ def build_email(alert_type=None, alert_msg=None):
 def send_mail(subject, html):
     msg = MIMEMultipart("alternative")
     msg["Subject"] = Header(subject, "utf-8")
-    msg["From"] = MAIL_USERNAME
+    msg["From"] = f"油价每日推送机器人 <{MAIL_USERNAME}>"
     msg["To"] = RECEIVER_EMAIL
     msg.attach(MIMEText(html, "html", "utf-8"))
 
