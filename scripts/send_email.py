@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-每日油价推送 + 越南柴油阈值预警
-跌破 25000 = 绿色（好消息）
-回升超 25000 = 红色（坏消息）
+每日油价推送 + 越南柴油预警（独立两封）
+- 每日推送：每天固定时间，发给列表 1
+- 预警推送：只在跨越 25000 阈值时发，发给列表 2
 通过 163 邮箱 SMTP 发送
 """
 
@@ -22,13 +22,24 @@ MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
 SMTP_HOST = "smtp.163.com"
 SMTP_PORT = 465
 
-RECEIVER_EMAIL = "Lissie.Liu@luxshare-ict.com"
-                 "Claire-XJ.Wang@luxshare-ict.com"
+SENDER_DISPLAY_NAME = "油价每日推送机器人"
+
+# ★ 每日推送的收件人列表（列表 1）—— 自己加
+DAILY_RECEIVERS = [
+    "Lissie.Liu@luxshare-ict.com",
+    "Claire-XJ.Wang@luxshare-ict.com",
+]
+
+# ★ 预警推送的收件人列表（列表 2）—— 自己加
+ALERT_RECEIVERS = [
+    "Lissie.Liu@luxshare-ict.com",
+    # "老板@example.com",
+]
 
 BASE_URL = "https://no532.github.io/Oil-price-update"
 LOCAL_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-VN_DIESEL_THRESHOLD = 25000
+VN_DIESEL_THRESHOLD = 25000     # VND/L
 ALERT_STATE_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     "alert_state.json"
@@ -121,27 +132,27 @@ def save_alert_state(state):
 
 def check_vn_diesel_alert(cur_price, state, today):
     """
-    返回 (alert_type, message)
-    alert_type: None / "trigger" / "recover"
-      "trigger" = 跌破阈值 → 绿色 ✅
-      "recover" = 回升超过阈值 → 红色 ⚠️
+    理解 A：跨越 25000 线才触发
+      - 昨天 >= 25000，今天 < 25000 → 触发"跌破" ✅ 绿
+      - 昨天 < 25000，今天 >= 25000 → 触发"回升" ⚠️ 红
+      - 其他情况不触发
+    每天只发一次（last_alert_date == today 时跳过）
     """
     below = cur_price < VN_DIESEL_THRESHOLD
     was_below = state.get("vn_diesel_below_threshold", False)
     last_date = state.get("last_alert_date")
 
-    # 每天只发一次
     if last_date == today:
         return None, None
 
-    # 跌破阈值（绿色，好消息）
+    # 跌破
     if below and not was_below:
         return "trigger", (
             f"越南柴油 DO 0.05S（区域 1）当前价 <b>{fmt_int(cur_price)} VND/L</b>"
             f"，已跌破阈值 <b>{fmt_int(VN_DIESEL_THRESHOLD)} VND/L</b>"
         )
 
-    # 从下方回升超过阈值（红色，坏消息）
+    # 回升
     if not below and was_below:
         return "recover", (
             f"越南柴油 DO 0.05S（区域 1）当前价 <b>{fmt_int(cur_price)} VND/L</b>"
@@ -338,15 +349,13 @@ def build_summary(domestic, hk, intl, vn):
     html += "</table></div>"
     return html
 
-# ==================== 预警横幅（颜色已交换） ====================
+# ==================== 预警横幅 ====================
 def build_alert_banner(alert_type, message):
     if not alert_type:
         return ""
-    # 跌破 = 好消息 = 绿色
     if alert_type == "trigger":
         bg, border, color, icon = "#eef9f1", "#b7e4c7", "#27ae60", "✅"
-    # 回升 = 坏消息 = 红色
-    else:  # "recover"
+    else:
         bg, border, color, icon = "#fdf0ef", "#f5c6c0", "#c9302c", "⚠️"
     return f"""
     <div style="background:{bg};border:2px solid {border};border-radius:8px;
@@ -471,25 +480,11 @@ def render_vietnam(d):
     html += "</tbody></table>"
     return html
 
-# ==================== 拼邮件 ====================
-def build_email(alert_type=None, alert_msg=None):
+# ==================== 拼「每日推送」邮件 ====================
+def build_daily_email(domestic, hk, intl, vn):
     today = bj_now().strftime("%Y-%m-%d")
 
-    domestic = fetch_domestic()
-    hk = fetch_hongkong()
-    intl = fetch_international()
-    vn = fetch_vietnam()
-
     summary_html = build_summary(domestic, hk, intl, vn)
-    alert_html = build_alert_banner(alert_type, alert_msg)
-
-    # 邮件标题（颜色对应的图标）
-    if alert_type == "trigger":
-        subject = f"✅ 越南柴油跌破阈值 · {today}"
-    elif alert_type == "recover":
-        subject = f"⚠️ 越南柴油回升 · {today}"
-    else:
-        subject = f"【每日油价】{today}"
 
     body = f"""
     <html><body style="font-family:Arial,'Microsoft YaHei',sans-serif;
@@ -499,7 +494,6 @@ def build_email(alert_type=None, alert_msg=None):
         自动推送，数据仅供参考
       </p>
 
-      {alert_html}
       {summary_html}
 
       {section("一、国内各省市油价", render_domestic(domestic))}
@@ -521,19 +515,67 @@ def build_email(alert_type=None, alert_msg=None):
       </p>
     </body></html>
     """
-    return today, subject, body
+    subject = f"【每日油价】{today}"
+    return subject, body
+
+# ==================== 拼「预警」邮件 ====================
+def build_alert_email(alert_type, alert_msg, vn):
+    today = bj_now().strftime("%Y-%m-%d")
+
+    alert_html = build_alert_banner(alert_type, alert_msg)
+
+    # 预警邮件里只放越南明细，不放国内/香港/国际
+    vn_html = render_vietnam(vn) if vn else ""
+
+    body = f"""
+    <html><body style="font-family:Arial,'Microsoft YaHei',sans-serif;
+                        color:#1f2d3d;max-width:960px;margin:auto;padding:16px;">
+      <h2 style="color:#c9302c;text-align:center;">越南柴油预警 · {today}</h2>
+      <p style="color:#8492a6;font-size:12px;text-align:center;">
+        仅在越南柴油 05S 跨越 25000 VND/L 阈值时推送
+      </p>
+
+      {alert_html}
+
+      {section("越南油价明细", vn_html)}
+
+      <hr style="border:none;border-top:1px dashed #e4e7ed;margin:24px 0;">
+      <div style="text-align:center;margin:20px 0;">
+        <a href="{BASE_URL}" style="display:inline-block;padding:10px 24px;
+           background:#c9302c;color:#fff;text-decoration:none;border-radius:6px;
+           font-size:14px;font-weight:600;">
+          🌐 查看完整网页版
+        </a>
+      </div>
+      <p style="color:#8492a6;font-size:12px;text-align:center;">
+        本邮件由 GitHub Actions 自动生成，请勿回复
+      </p>
+    </body></html>
+    """
+    if alert_type == "trigger":
+        subject = f"✅ 越南柴油跌破阈值 · {today}"
+    else:
+        subject = f"⚠️ 越南柴油回升超过阈值 · {today}"
+    return subject, body
 
 # ==================== 发送 ====================
-def send_mail(subject, html):
+def send_mail(subject, html, receivers):
+    """发给所有收件人（一封邮件，多个收件人）"""
+    if not receivers:
+        print("[WARN] 收件人列表为空，跳过发送")
+        return
+
     msg = MIMEMultipart("alternative")
     msg["Subject"] = Header(subject, "utf-8")
-    msg["From"] = f"油价每日推送机器人 <{MAIL_USERNAME}>"
-    msg["To"] = RECEIVER_EMAIL
+    msg["From"] = f"{SENDER_DISPLAY_NAME} <{MAIL_USERNAME}>"
+    msg["To"] = ", ".join(receivers)
     msg.attach(MIMEText(html, "html", "utf-8"))
 
     with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT) as server:
         server.login(MAIL_USERNAME, MAIL_PASSWORD)
-        server.sendmail(MAIL_USERNAME, [RECEIVER_EMAIL], msg.as_string())
+        server.sendmail(MAIL_USERNAME, receivers, msg.as_string())
+
+    print(f"邮件发送成功 → {receivers}")
 
 def main():
     if not MAIL_USERNAME or not MAIL_PASSWORD:
@@ -541,7 +583,13 @@ def main():
 
     today = bj_now().strftime("%Y-%m-%d")
 
+    # 1. 拉所有数据
+    domestic = fetch_domestic()
+    hk = fetch_hongkong()
+    intl = fetch_international()
     vn = fetch_vietnam()
+
+    # 2. 提取越南柴油 05S 区域1 价格
     vn_diesel_z1 = None
     if vn:
         for r in vn["rows"]:
@@ -549,28 +597,38 @@ def main():
                 vn_diesel_z1 = r["z1"]
                 break
 
+    # 3. 判断预警
     state = load_alert_state()
-
     alert_type = None
     alert_msg = None
     if vn_diesel_z1 is not None:
         alert_type, alert_msg = check_vn_diesel_alert(vn_diesel_z1, state, today)
-        print(f"[INFO] 越南柴油 05S 区域1 = {vn_diesel_z1}, 预警 = {alert_type}")
+        print(f"[INFO] 越南柴油 05S 区域1 = {vn_diesel_z1}, "
+              f"below = {state.get('vn_diesel_below_threshold')}, "
+              f"预警 = {alert_type}")
 
-    _, subject, html = build_email(alert_type, alert_msg)
+    # 4. 发每日推送（永远发）
     try:
-        send_mail(subject, html)
-        print("邮件发送成功 →", RECEIVER_EMAIL)
+        daily_subject, daily_html = build_daily_email(domestic, hk, intl, vn)
+        send_mail(daily_subject, daily_html, DAILY_RECEIVERS)
     except Exception as e:
-        print("邮件发送失败:", e)
+        print("[ERROR] 每日推送失败:", e)
         raise
 
+    # 5. 如果有预警，额外发一封预警邮件（只发给列表 2）
     if alert_type:
+        try:
+            alert_subject, alert_html = build_alert_email(alert_type, alert_msg, vn)
+            send_mail(alert_subject, alert_html, ALERT_RECEIVERS)
+        except Exception as e:
+            print("[ERROR] 预警推送失败:", e)
+            raise
+
+    # 6. 更新预警状态
+    if vn_diesel_z1 is not None:
         state["vn_diesel_below_threshold"] = (vn_diesel_z1 < VN_DIESEL_THRESHOLD)
+    if alert_type:
         state["last_alert_date"] = today
-    else:
-        state["vn_diesel_below_threshold"] = (vn_diesel_z1 is not None
-                                              and vn_diesel_z1 < VN_DIESEL_THRESHOLD)
     state["threshold"] = VN_DIESEL_THRESHOLD
     save_alert_state(state)
 
