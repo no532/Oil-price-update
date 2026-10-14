@@ -55,6 +55,31 @@
   .up   { color:#e74c3c; }
   .down { color:#27ae60; }
   .flat { color:#8492a6; }
+
+  /* 国际表格样式 */
+  .intl-table {
+    width:100%; border-collapse:collapse; background:#fff; font-size:14px;
+  }
+  .intl-table th {
+    padding:12px 10px; border:1px solid #e4e7ed;
+    color:#27ae60; font-weight:600; background:#fafbfc;
+  }
+  .intl-table td {
+    padding:12px 10px; border:1px solid #e4e7ed; text-align:center;
+  }
+  .intl-table td.col-name { font-weight:600; color:#27ae60; }
+  .intl-table td.col-cur  { font-weight:600; color:#1f2d3d; }
+  .intl-table td.col-cny  { font-weight:600; color:#409eff; background:#f7fbff; }
+  .intl-table .unit { font-size:11px; color:#8492a6; font-weight:400; margin-left:2px; }
+
+  .note {
+    font-size:12px; color:#8492a6; line-height:1.8;
+    margin-top:8px;
+  }
+  .chart-note {
+    text-align:center; font-size:12px; color:#8492a6;
+    margin-top:6px; margin-bottom:8px;
+  }
 </style>
 </head>
 <body>
@@ -71,7 +96,7 @@
 </div>
 
 <div class="pane" id="pane-intl">
-  <div style="padding:24px;max-width:1100px;margin:0 auto;">
+  <div style="padding:24px;max-width:1300px;margin:0 auto;">
 
     <h1 style="text-align:center;font-size:26px;margin:8px 0 24px;font-weight:600;">
       国际油价今日行情
@@ -83,23 +108,31 @@
       <button id="resetDateBtn">重置（最新）</button>
     </div>
 
-    <table style="width:100%;border-collapse:collapse;background:#fff;font-size:15px;">
+    <table class="intl-table">
       <thead>
         <tr>
-          <th style="padding:14px;border:1px solid #e4e7ed;color:#27ae60;font-weight:600;">国际（美元）</th>
-          <th style="padding:14px;border:1px solid #e4e7ed;color:#27ae60;font-weight:600;">当前</th>
-          <th style="padding:14px;border:1px solid #e4e7ed;color:#27ae60;font-weight:600;">较今开</th>
-          <th style="padding:14px;border:1px solid #e4e7ed;color:#27ae60;font-weight:600;">今开</th>
-          <th style="padding:14px;border:1px solid #e4e7ed;color:#27ae60;font-weight:600;">昨收</th>
-          <th style="padding:14px;border:1px solid #e4e7ed;color:#27ae60;font-weight:600;">昨收最高</th>
-          <th style="padding:14px;border:1px solid #e4e7ed;color:#27ae60;font-weight:600;">昨收最低</th>
+          <th>国际（美元）</th>
+          <th>当前</th>
+          <th>折合人民币</th>
+          <th>较今开</th>
+          <th>今开</th>
+          <th>昨收</th>
+          <th>昨收最高</th>
+          <th>昨收最低</th>
         </tr>
       </thead>
       <tbody id="intlTableBody">
-        <tr><td colspan="7" style="padding:20px;text-align:center;color:#8492a6;">加载中...</td></tr>
+        <tr><td colspan="8" style="padding:20px;text-align:center;color:#8492a6;">加载中...</td></tr>
       </tbody>
     </table>
     <div id="intlTime" style="text-align:right;font-size:12px;color:#b0b8c1;margin-top:8px;"></div>
+
+    <div class="note">
+      数据来源：新浪财经日 K 线<br>
+      汇率来源：fawazahmed0 currency-api（每日更新）<br>
+      1 桶原油 = 158.987 升；折合人民币 = 美元/桶 × 汇率(CNY/USD) ÷ 158.987<br>
+      注：表中"昨收 / 昨收最高 / 昨收最低"为上一交易日的日 K 数据
+    </div>
 
     <div style="margin-top:36px;">
       <div style="text-align:center;margin-bottom:8px;">
@@ -121,6 +154,7 @@
       <div class="delta-row" id="deltaRow"></div>
 
       <div id="priceChart" style="width:100%;height:440px;"></div>
+      <div class="chart-note">注：图中数据为每日收盘价（日 K 收盘）</div>
     </div>
 
   </div>
@@ -159,6 +193,13 @@ let selectedDate = null;
 let minlineData = null;
 let monthlyData = null;
 
+// ★ 汇率：1 USD = ? CNY
+let USD_TO_CNY = 7.15;   // fallback
+let rateUpdatedAt = '';
+
+// 桶 -> 升
+const BARREL_TO_LITER = 158.987;
+
 const COLOR = {
   'WTI美国': '#409eff',
   '布伦特': '#e6a23c',
@@ -166,6 +207,38 @@ const COLOR = {
   '布伦特油': '#e6a23c',
   'OPEC一揽子': '#27ae60',
 };
+
+// ============== 汇率获取 ==============
+async function fetchExchangeRate() {
+  const urls = [
+    'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json',
+    'https://latest.currency-api.pages.dev/v1/currencies/usd.json'
+  ];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { cache: 'no-cache' });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const usdToCny = data.usd && data.usd.cny;
+      if (usdToCny && usdToCny > 0) {
+        USD_TO_CNY = usdToCny;
+        rateUpdatedAt = data.date || new Date().toISOString().slice(0, 10);
+        console.log(`汇率更新：1 USD = ${USD_TO_CNY.toFixed(4)} CNY (${rateUpdatedAt})`);
+        return true;
+      }
+    } catch (e) {
+      console.warn('汇率接口失败：', url, e.message);
+    }
+  }
+  console.warn('汇率接口全部失败，使用 fallback');
+  return false;
+}
+
+// 美元/桶 → 元/升
+function usdPerBarrelToCnyPerLiter(usd) {
+  if (usd == null || isNaN(usd)) return null;
+  return usd * USD_TO_CNY / BARREL_TO_LITER;
+}
 
 // ============== 数据加载 ==============
 async function loadMinline() {
@@ -176,7 +249,7 @@ async function loadMinline() {
     document.getElementById('intlTime').textContent = '更新时间：' + minlineData.update_time;
   } catch (e) {
     document.getElementById('intlTableBody').innerHTML =
-      '<tr><td colspan="7" style="padding:20px;text-align:center;color:#e74c3c;">读取 国际/oil_minline.json 失败</td></tr>';
+      '<tr><td colspan="8" style="padding:20px;text-align:center;color:#e74c3c;">读取 国际/oil_minline.json 失败</td></tr>';
   }
 }
 
@@ -282,8 +355,8 @@ function renderTable() {
 
       if (!pts.length) {
         tbody.innerHTML += `<tr>
-          <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;color:#27ae60;font-weight:600;">${item.key}</td>
-          <td colspan="6" style="padding:14px;border:1px solid #e4e7ed;text-align:center;color:#c0c4cc;">无数据</td>
+          <td class="col-name">${item.key}</td>
+          <td colspan="7" style="padding:14px;text-align:center;color:#c0c4cc;">无数据</td>
         </tr>`;
         continue;
       }
@@ -291,12 +364,18 @@ function renderTable() {
       const cur = pts[pts.length - 1][1];
       const open = meta.open;
 
+      // ★ 昨收：从 oil_monthly 取最新一天的收盘价（跟走势图一致）
       const latestHist = getLatestHistoryDate();
-      const prevInfo = latestHist ? getPrevDailyDetail(item.historyKey, latestHist) : null;
-      const prevClose = prevInfo && prevInfo.detail ? prevInfo.detail.close : null;
-      const prevHigh  = prevInfo && prevInfo.detail ? prevInfo.detail.high  : null;
-      const prevLow   = prevInfo && prevInfo.detail ? prevInfo.detail.low   : null;
+      const prevClose = latestHist ? getSeriesClose(item.historyKey, latestHist) : null;
 
+      // ★ 昨收最高/最低：从 oil_minline.meta 取
+      const prevHigh = meta.high != null ? parseFloat(meta.high) : null;
+      const prevLow  = meta.low  != null ? parseFloat(meta.low)  : null;
+
+      // ★ 折合人民币（元/升）
+      const cny = usdPerBarrelToCnyPerLiter(cur);
+
+      // ★ 较今开（每个单元格后面都跟单位）
       let pctText = '—';
       if (open != null && !isNaN(open) && open !== 0) {
         const diff = cur - open;
@@ -304,21 +383,22 @@ function renderTable() {
         const up = diff > 0, down = diff < 0;
         const color = up ? '#e74c3c' : down ? '#27ae60' : '#8492a6';
         const sign = up ? '+' : '';
-        pctText = `<span style="color:${color};font-weight:600;">${sign}${diff.toFixed(2)}</span>
+        pctText = `<span style="color:${color};font-weight:600;">${sign}${diff.toFixed(2)}<span class="unit">美元/桶</span></span>
                    <span style="color:${color};font-size:13px;">（${sign}${pct.toFixed(2)}%）</span>`;
       }
 
-      const fmt = v => (v == null || isNaN(v)) ? '—' : Number(v).toFixed(2);
+      const fmtUnit = (v, unit) => (v == null || isNaN(v)) ? '—' : `${Number(v).toFixed(2)}<span class="unit">${unit}</span>`;
 
       tbody.innerHTML += `
         <tr>
-          <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;color:#27ae60;font-weight:600;">${item.key}</td>
-          <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;font-weight:600;">${cur.toFixed(2)}</td>
-          <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;">${pctText}</td>
-          <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;">${fmt(open)}</td>
-          <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;">${fmt(prevClose)}</td>
-          <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;">${fmt(prevHigh)}</td>
-          <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;">${fmt(prevLow)}</td>
+          <td class="col-name">${item.key}</td>
+          <td class="col-cur">${fmtUnit(cur, '美元/桶')}</td>
+          <td class="col-cny">${cny != null ? cny.toFixed(2) : '—'}<span class="unit">元/升</span></td>
+          <td>${pctText}</td>
+          <td>${fmtUnit(open, '美元/桶')}</td>
+          <td>${fmtUnit(prevClose, '美元/桶')}</td>
+          <td>${fmtUnit(prevHigh, '美元/桶')}</td>
+          <td>${fmtUnit(prevLow, '美元/桶')}</td>
         </tr>`;
     } else {
       const close = getSeriesClose(item.historyKey, selectedDate);
@@ -326,24 +406,26 @@ function renderTable() {
       const prevClose = prevDate ? getSeriesClose(item.historyKey, prevDate) : null;
       const prevDetail = prevDate ? getDailyDetail(item.historyKey, prevDate) : null;
 
-      const fmt = v => (v == null || isNaN(v)) ? '—' : Number(v).toFixed(2);
+      const fmtUnit = (v, unit) => (v == null || isNaN(v)) ? '—' : `${Number(v).toFixed(2)}<span class="unit">${unit}</span>`;
+      const cny = usdPerBarrelToCnyPerLiter(close);
 
       if (close == null) {
         tbody.innerHTML += `
           <tr>
-            <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;color:#27ae60;font-weight:600;">${item.key}</td>
-            <td colspan="6" style="padding:14px;border:1px solid #e4e7ed;text-align:center;color:#c0c4cc;">${selectedDate} 无数据</td>
+            <td class="col-name">${item.key}</td>
+            <td colspan="7" style="padding:14px;text-align:center;color:#c0c4cc;">${selectedDate} 无数据</td>
           </tr>`;
       } else {
         tbody.innerHTML += `
           <tr>
-            <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;color:#27ae60;font-weight:600;">${item.key}</td>
-            <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;font-weight:600;">${close.toFixed(2)}</td>
-            <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;">—</td>
-            <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;">—</td>
-            <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;">${fmt(prevClose)}</td>
-            <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;">${prevDetail ? fmt(prevDetail.high) : '—'}</td>
-            <td style="padding:14px;border:1px solid #e4e7ed;text-align:center;">${prevDetail ? fmt(prevDetail.low)  : '—'}</td>
+            <td class="col-name">${item.key}</td>
+            <td class="col-cur">${fmtUnit(close, '美元/桶')}</td>
+            <td class="col-cny">${cny != null ? cny.toFixed(2) : '—'}<span class="unit">元/升</span></td>
+            <td>—</td>
+            <td>—</td>
+            <td>${fmtUnit(prevClose, '美元/桶')}</td>
+            <td>${prevDetail ? fmtUnit(prevDetail.high, '美元/桶') : '—'}</td>
+            <td>${prevDetail ? fmtUnit(prevDetail.low,  '美元/桶') : '—'}</td>
           </tr>`;
       }
     }
@@ -687,8 +769,13 @@ document.querySelectorAll('.range-btn').forEach(btn => {
   };
 });
 
-loadMinline();
-loadMonthly();
+// ============== 初始化 ==============
+(async function init() {
+  await fetchExchangeRate();
+  await loadMinline();
+  await loadMonthly();
+})();
+
 setInterval(loadMinline, 60000);
 setInterval(loadMonthly, 3600000);
 
