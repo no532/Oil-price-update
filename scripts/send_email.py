@@ -24,17 +24,15 @@ SMTP_PORT = 465
 
 SENDER_DISPLAY_NAME = "油价每日推送机器人"
 
-# ★ 每日推送的收件人列表（列表 1）—— 自己加
-DAILY_RECEIVERS = [
-    "Lissie.Liu@luxshare-ict.com",
-    "Claire-XJ.Wang@luxshare-ict.com", 
-]
+import os
 
-# ★ 预警推送的收件人列表（列表 2）—— 自己加
-ALERT_RECEIVERS = [
-    "Lissie.Liu@luxshare-ict.com",
-    # "老板@example.com",
-]
+def parse_emails(env_name):
+    """从环境变量读取逗号分隔的邮箱列表"""
+    raw = os.environ.get(env_name, "")
+    return [e.strip() for e in raw.split(",") if e.strip()]
+
+DAILY_RECEIVERS = parse_emails("DAILY_RECEIVERS")
+ALERT_RECEIVERS = parse_emails("ALERT_RECEIVERS")
 
 BASE_URL = "https://no532.github.io/Oil-price-update"
 LOCAL_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
