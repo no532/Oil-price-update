@@ -31,6 +31,8 @@ jobs:
         env:
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          DAILY_RECEIVERS: ${{ secrets.DAILY_RECEIVERS }}
+          ALERT_RECEIVERS: ${{ secrets.ALERT_RECEIVERS }}
         run: python scripts/send_email.py
 
       - name: Commit alert state
