@@ -22,7 +22,7 @@ MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
 SMTP_HOST = "smtp.163.com"
 SMTP_PORT = 465
 
-SENDER_DISPLAY_NAME = "油价每日推送机器人"
+SENDER_DISPLAY_NAME = ""   # 空字符串
 
 import os
 
@@ -565,7 +565,7 @@ def send_mail(subject, html, receivers):
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = Header(subject, "utf-8")
-    msg["From"] = f"{SENDER_DISPLAY_NAME} <{MAIL_USERNAME}>"
+    msg["From"] = MAIL_USERNAME
     msg["To"] = ", ".join(receivers)
     msg.attach(MIMEText(html, "html", "utf-8"))
 
