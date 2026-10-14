@@ -102,10 +102,8 @@
   <div id="intlTime" style="text-align:right;font-size:12px;color:#b0b8c1;margin-top:8px;"></div>
 
   <div class="note">
-    数据来源：新浪财经日 K 线<br>
-    汇率来源：fawazahmed0 currency-api（每日更新）<br>
     1 桶原油 = 158.987 升；折合人民币 = 美元/桶 × 汇率(CNY/USD) ÷ 158.987<br>
-    注：表中"昨收 / 昨收最高 / 昨收最低"为上一交易日的日 K 数据
+    汇率：1 USD = <b id="rateDisplay">加载中…</b>
   </div>
 
   <div style="margin-top:36px;">
@@ -312,13 +310,12 @@ function renderTable() {
       const cur = pts[pts.length - 1][1];
       const open = meta.open;
 
-      // ★ 昨收：从 oil_monthly 取最新一天收盘价（跟走势图一致）
+      // ★ 昨收 / 昨收最高 / 昨收最低：都从 oil_monthly.dailyDetail 取
       const latestHist = getLatestHistoryDate();
+      const prevInfo = latestHist ? getPrevDailyDetail(item.historyKey, latestHist) : null;
       const prevClose = latestHist ? getSeriesClose(item.historyKey, latestHist) : null;
-
-      // ★ 昨收最高/最低：从 oil_minline.meta 取
-      const prevHigh = meta.high != null ? parseFloat(meta.high) : null;
-      const prevLow  = meta.low  != null ? parseFloat(meta.low)  : null;
+      const prevHigh  = prevInfo && prevInfo.detail ? prevInfo.detail.high  : null;
+      const prevLow   = prevInfo && prevInfo.detail ? prevInfo.detail.low   : null;
 
       // ★ 折合人民币（元/升）
       const cny = usdPerBarrelToCnyPerLiter(cur);
@@ -685,6 +682,11 @@ function renderDeltaRow(mode) {
 function renderAll() {
   renderTable();
   renderPriceChart();
+  // ★ 更新汇率显示
+  const el = document.getElementById('rateDisplay');
+  if (el) {
+    el.textContent = `${USD_TO_CNY.toFixed(4)} CNY（${rateUpdatedAt || '—'}）`;
+  }
 }
 
 function renderPriceChart() {
