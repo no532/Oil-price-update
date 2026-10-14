@@ -27,7 +27,7 @@ SENDER_DISPLAY_NAME = "油价每日推送机器人"
 # ★ 每日推送的收件人列表（列表 1）—— 自己加
 DAILY_RECEIVERS = [
     "Lissie.Liu@luxshare-ict.com",
-    "Claire-XJ.Wang@luxshare-ict.com",
+    "Claire-XJ.Wang@luxshare-ict.com", 
 ]
 
 # ★ 预警推送的收件人列表（列表 2）—— 自己加
