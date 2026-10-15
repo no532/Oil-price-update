@@ -394,7 +394,7 @@ def build_summary(domestic, hk, intl, vn,
                   prov_history, hk_history, vn_history, intl_history,
                   calendar):
     today = bj_now()
-    blocks = []
+    rows = []
 
     # --- 国内柴油 ---
     if domestic and domestic["avg_p0"] is not None:
@@ -404,38 +404,37 @@ def build_summary(domestic, hk, intl, vn,
         if ref_prov:
             last_date, last_price = find_last_change_date(
                 prov_history[ref_prov], avg)
-        subs = []
+        diff = None
+        pct = None
+        last_date_str = "—"
         if last_date and last_price:
             diff = avg - last_price
             pct = diff / last_price * 100 if last_price else None
-            subs.append(
-                f"较上次：{last_date.strftime('%Y-%m-%d')}　"
-                f"<span style='color:{color_of(diff)};'>"
-                f"{fmt_signed(diff)}（{fmt_signed_pct(pct)}）</span>"
-            )
+            last_date_str = last_date.strftime('%Y-%m-%d')
         else:
             d0_vals = [r["d0"] for r in domestic["rows"] if r["d0"] is not None]
             avg_d0 = sum(d0_vals) / len(d0_vals) if d0_vals else None
             if avg_d0 is not None:
+                diff = avg_d0
                 pct = avg_d0 / (avg - avg_d0) * 100 if avg else None
-                subs.append(
-                    f"较上次：—　"
-                    f"<span style='color:{color_of(avg_d0)};'>"
-                    f"{fmt_signed(avg_d0)}（{fmt_signed_pct(pct)}）</span>"
-                )
+
         next_d = next_adjust_date(calendar, today)
         if next_d:
             days = (next_d.date() - today.date()).days
             if days == 0:
-                next_str = f"<b style='color:#e74c3c;'>今天调整（{next_d.strftime('%Y-%m-%d')}）</b>"
+                next_str = f"<b style='color:#e74c3c;'>今天调整</b>"
             else:
-                next_str = f"{next_d.strftime('%Y-%m-%d')}　还有 <b>{days}</b> 天"
-            subs.append(f"下次调整：{next_str}")
-        blocks.append({
+                next_str = f"{next_d.strftime('%Y-%m-%d')}（还有 {days} 天）"
+        else:
+            next_str = "—"
+
+        rows.append({
             "label": "国内柴油（31 省平均）",
-            "value": fmt_num(avg),
-            "unit": "元/升",
-            "subs": subs,
+            "value": f"{fmt_num(avg)}<span class='u'>元/升</span>",
+            "last_date": last_date_str,
+            "diff": diff,
+            "pct": pct,
+            "next": next_str,
         })
 
     # --- 香港柴油 ---
@@ -444,20 +443,18 @@ def build_summary(domestic, hk, intl, vn,
             if "柴油" in r["fuel"]:
                 cur = r["retail"]
                 last_date, last_price = find_last_change_date(hk_history, cur)
-                subs = []
+                diff = None; pct = None; last_date_str = "—"
                 if last_date and last_price:
                     diff = cur - last_price
                     pct = diff / last_price * 100 if last_price else None
-                    subs.append(
-                        f"较上次：{last_date.strftime('%Y-%m-%d')}　"
-                        f"<span style='color:{color_of(diff)};'>"
-                        f"{fmt_signed(diff)}（{fmt_signed_pct(pct)}）</span>"
-                    )
-                blocks.append({
+                    last_date_str = last_date.strftime('%Y-%m-%d')
+                rows.append({
                     "label": "香港柴油（平均零售价）",
-                    "value": fmt_num(cur),
-                    "unit": "HKD/升",
-                    "subs": subs,
+                    "value": f"{fmt_num(cur)}<span class='u'>HKD/升</span>",
+                    "last_date": last_date_str,
+                    "diff": diff,
+                    "pct": pct,
+                    "next": "—",
                 })
                 break
 
@@ -467,20 +464,18 @@ def build_summary(domestic, hk, intl, vn,
             cur = r["cur"]
             hist = intl_history.get(r["name"], [])
             last_date, last_price = find_last_change_date(hist, cur)
-            subs = []
+            diff = None; pct = None; last_date_str = "—"
             if last_date and last_price:
                 diff = cur - last_price
                 pct = diff / last_price * 100 if last_price else None
-                subs.append(
-                    f"较上次：{last_date.strftime('%Y-%m-%d')}　"
-                    f"<span style='color:{color_of(diff)};'>"
-                    f"{fmt_signed(diff)}（{fmt_signed_pct(pct)}）</span>"
-                )
-            blocks.append({
+                last_date_str = last_date.strftime('%Y-%m-%d')
+            rows.append({
                 "label": r["name"],
-                "value": fmt_num(cur),
-                "unit": "美元/桶",
-                "subs": subs,
+                "value": f"{fmt_num(cur)}<span class='u'>美元/桶</span>",
+                "last_date": last_date_str,
+                "diff": diff,
+                "pct": pct,
+                "next": "—",
             })
 
     # --- 越南柴油 05S ---
@@ -489,44 +484,73 @@ def build_summary(domestic, hk, intl, vn,
             if r["prefix"] == "DO005S_M2":
                 cur = r["z1"]
                 last_date, last_price = find_last_change_date(vn_history, cur)
-                subs = []
+                diff = None; pct = None; last_date_str = "—"
                 if last_date and last_price:
                     diff = cur - last_price
                     pct = diff / last_price * 100 if last_price else None
-                    subs.append(
-                        f"较上次：{last_date.strftime('%Y-%m-%d')}　"
-                        f"<span style='color:{color_of(diff)};'>"
-                        f"{fmt_signed(diff)}（{fmt_signed_pct(pct)}）</span>"
-                    )
-                blocks.append({
+                    last_date_str = last_date.strftime('%Y-%m-%d')
+                rows.append({
                     "label": "越南柴油 0.05S（区域 1）",
-                    "value": fmt_int(cur),
-                    "unit": "VND/升",
-                    "subs": subs,
+                    "value": f"{fmt_int(cur)}<span class='u'>VND/升</span>",
+                    "last_date": last_date_str,
+                    "diff": diff,
+                    "pct": pct,
+                    "next": "—",
                 })
                 break
 
-    # 拼 HTML
+    # 拼 HTML 表格
     html = """
     <div style="background:#fff8f7;border:1px solid #f5d0cc;border-radius:8px;
                 padding:16px 20px;margin-bottom:20px;">
       <h3 style="color:#c9302c;margin:0 0 12px;font-size:16px;">📊 今日汇总</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:#fbeae8;">
+            <th style="padding:8px 10px;text-align:left;color:#c9302c;font-weight:600;border-bottom:1px solid #f0d0cc;">品种</th>
+            <th style="padding:8px 10px;text-align:right;color:#c9302c;font-weight:600;border-bottom:1px solid #f0d0cc;">当前价</th>
+            <th style="padding:8px 10px;text-align:center;color:#c9302c;font-weight:600;border-bottom:1px solid #f0d0cc;">较上次</th>
+            <th style="padding:8px 10px;text-align:center;color:#c9302c;font-weight:600;border-bottom:1px solid #f0d0cc;">下次调整</th>
+          </tr>
+        </thead>
+        <tbody>
     """
-    for b in blocks:
+
+    for r in rows:
+        if r["diff"] is not None and r["pct"] is not None:
+            c = color_of(r["diff"])
+            sign = "+" if r["diff"] > 0 else ""
+            diff_str = (
+                f"<div style='color:{c};font-weight:600;'>"
+                f"{sign}{fmt_num(r['diff'])}（{sign}{r['pct']:.2f}%）"
+                f"</div>"
+                f"<div style='color:#8492a6;font-size:11px;margin-top:2px;'>"
+                f"较 {r['last_date']}"
+                f"</div>"
+            )
+        else:
+            diff_str = (
+                f"<div style='color:#8492a6;'>—</div>"
+                f"<div style='color:#8492a6;font-size:11px;margin-top:2px;'>较 —</div>"
+            )
+
         html += f"""
-        <div style="padding:10px 0;border-bottom:1px dashed #f0d0cc;">
-          <div style="font-size:14px;color:#5a6b7b;">
-            {b['label']}
-            <span style="float:right;font-weight:600;color:#1f2d3d;">
-              {b['value']} <span style="color:#8492a6;font-weight:400;">{b['unit']}</span>
-            </span>
-          </div>
-          <div style="clear:both;"></div>
+        <tr>
+          <td style="padding:10px;text-align:left;border-bottom:1px dashed #f0d0cc;color:#5a6b7b;">{r['label']}</td>
+          <td style="padding:10px;text-align:right;border-bottom:1px dashed #f0d0cc;font-weight:600;color:#1f2d3d;">{r['value']}</td>
+          <td style="padding:10px;text-align:center;border-bottom:1px dashed #f0d0cc;">{diff_str}</td>
+          <td style="padding:10px;text-align:center;border-bottom:1px dashed #f0d0cc;color:#5a6b7b;font-size:12px;">{r['next']}</td>
+        </tr>
         """
-        for sub in b["subs"]:
-            html += f'<div style="font-size:12px;color:#8492a6;margin-top:4px;">{sub}</div>'
-        html += "</div>"
-    html += "</div>"
+
+    html += """
+        </tbody>
+      </table>
+      <style>
+        .u { font-size:11px; color:#8492a6; font-weight:400; margin-left:2px; }
+      </style>
+    </div>
+    """
     return html
 
 # ==================== 预警横幅 ====================
