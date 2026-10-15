@@ -1,8 +1,7 @@
 name: Daily Fuel Price Email
 
 on:
-  schedule:
-    - cron: '0 0 * * *'
+  # ★ 去掉 schedule，避免 GitHub cron 重复触发
   workflow_dispatch:
   repository_dispatch:
     types: [daily-trigger]
@@ -25,7 +24,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install deps
-        run:  pip install requests openpyxl
+        run: pip install requests openpyxl
 
       - name: Send email
         env:
