@@ -68,7 +68,12 @@ def load_json(url, local):
     if d is not None:
         return d
     return load_json_local(local)
-
+    
+def round2(v):
+    if v is None:
+        return None
+    return round(v * 100) / 100
+    
 def fmt_num(v):
     if v is None: return "—"
     try: return f"{float(v):.2f}"
