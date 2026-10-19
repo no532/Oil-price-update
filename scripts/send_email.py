@@ -402,29 +402,26 @@ def build_summary(domestic, hk, intl, vn,
     rows = []
 
     # --- 国内柴油 ---
+    # --- 国内柴油 ---
     if domestic and domestic["avg_p0"] is not None:
         avg = domestic["avg_p0"]
         
-        # ★ 修复：直接读取所有省份的"较上期涨跌"（d0），算平均值
         d0_vals = [r["d0"] for r in domestic["rows"] if r["d0"] is not None]
-        
-        # 如果发改委没调价，所有省的 d0 都是 0，平均下来也是 0
         avg_d0 = sum(d0_vals) / len(d0_vals) if d0_vals else 0
         
-        diff = round2(avg_d0)  # 这就是全国均价的波动值
+        diff = round2(avg_d0)
         pct = round2(diff / (avg - diff) * 100) if avg and diff else 0.0
         
-        # 找历史日期（为了在下面显示“较 YYYY-MM-DD”）
-        ref_prov = "湖南省" if "湖南省" in prov_history else None
+        # ★ 核心修改：找“上一个”调价日
         last_date_str = "—"
-        if ref_prov:
-            last_date, _ = find_last_change_date(prov_history[ref_prov], avg)
-            if last_date:
-                last_date_str = last_date.strftime('%Y-%m-%d')
-        else:
-            last_date_str = "上一调价日"
-
-        # 下次调整日期
+        past_dates = [d for d in calendar if d.date() <= today.date()]
+        # 如果今天是在调价日（10/16）之后，past_dates 最后一个就是 10/16，倒数第二个就是 9/25
+        if len(past_dates) >= 2:
+            last_date_str = past_dates[-2].strftime('%Y-%m-%d')
+        elif len(past_dates) == 1:
+            last_date_str = past_dates[-1].strftime('%Y-%m-%d')
+            
+        # 下次调整日期（保持不变）
         next_d = next_adjust_date(calendar, today)
         if next_d:
             days = (next_d.date() - today.date()).days
