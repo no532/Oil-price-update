@@ -250,7 +250,7 @@ def main():
             print(f"\n[CSV] {today_str} 数据相同，跳过更新")
         else:
             for col, val in new_row.items():
-                df.at[idx, col] = val
+                df.at[idx, col] = str(val) if val is not None else None
             save_csv(df)
             print(f"\n[CSV] {today_str} 已更新")
     else:
