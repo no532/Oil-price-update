@@ -133,11 +133,11 @@ def load_price_calendar():
             if v is None: continue
             d = parse_excel_date(v)
             if d:
-                b = ws.cell(row=row, column=2).value
-                if b == "√":
-                    dates.append(d)
+                # ★ 只要第一列有日期，统统算作调价日
+                dates.append(d)
         dates.sort()
-        print(f"[INFO] 调价日历读取 {len(dates)} 条：{dates[0]} ~ {dates[-1]}")
+        if dates:
+            print(f"[INFO] 调价日历读取 {len(dates)} 条：{dates[0]} ~ {dates[-1]}")
         return dates
     except Exception as e:
         print(f"[WARN] 读调价日历失败: {e}")
