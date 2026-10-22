@@ -293,23 +293,26 @@ def fetch_hongkong():
 def fetch_international():
     d = load_json(f"{BASE_URL}/国际/oil_minline.json",
                   os.path.join(LOCAL_BASE, "国际", "oil_minline.json"))
-    if not d:
-        return None
+    if not d: return None
 
     rows = []
     for name, pts in (d.get("series") or {}).items():
-        if not pts:
-            continue
-        cur = pts[-1][1]
+        if not pts: continue
+        
+        # ★ 1. 取今开 (Open)
         meta = (d.get("meta") or {}).get(name, {})
-        open_ = meta.get("open")
-        prev  = meta.get("prev_close")
-        diff = None; pct = None
-        if open_ and open_ != 0:
-            diff = cur - open_
-            pct = diff / open_ * 100
-        rows.append({"name": name, "cur": cur, "open": open_,
-                     "prev": prev, "diff": diff, "pct": pct})
+        open_price = meta.get("open")
+        
+        # 如果今开为空，退而求其次取最新分时价
+        cur = open_price if open_price else pts[-1][1]
+        
+        rows.append({
+            "name": name, 
+            "cur": cur,     # 这里的 cur 其实代表今天的开盘价
+            "open": open_price, 
+            "diff": None,   # 波动留给后面用日K算
+            "pct": None
+        })
     return {"update_time": d.get("update_time", "—"), "rows": rows}
 
 def load_intl_monthly():
