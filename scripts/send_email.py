@@ -466,16 +466,25 @@ def build_summary(domestic, hk, intl, vn,
                 break
 
     # --- 国际 WTI / 布伦特 ---
+    # --- 国际 WTI / 布伦特 ---
     if intl:
         for r in intl["rows"]:
             cur = r["cur"]
             hist = intl_history.get(r["name"], [])
-            last_date, last_price = find_last_change_date(hist, cur)
-            diff = None; pct = None; last_date_str = "—"
-            if last_date and last_price:
-                diff = cur - last_price
-                pct = diff / last_price * 100 if last_price else None
-                last_date_str = last_date.strftime('%Y-%m-%d')
+            
+            # ★ 2. 从日K(oil_monthly)里找昨天的收盘价
+            prev_close = hist[0][1] if hist and len(hist) > 0 else None
+            
+            diff = None
+            pct = None
+            last_date_str = "—"
+            
+            if prev_close:
+                diff = cur - prev_close
+                pct = (diff / prev_close) * 100 if prev_close else 0.0
+                # 获取昨天日K的日期
+                last_date_str = hist[0][0].strftime('%Y-%m-%d')
+                
             rows.append({
                 "label": r["name"],
                 "value": f"{fmt_num(cur)}<span class='u'>美元/桶</span>",
