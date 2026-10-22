@@ -1,6 +1,6 @@
 {
-  "update_time": "2026-10-22 13:54:46",
-  "date": "2026/10/20",
+  "update_time": "2026-10-22 17:49:37",
+  "date": "2026/10/22",
   "diesel": {
     "埃索": {
       "retail": 37.73,
@@ -23,13 +23,13 @@
       "discount": 2.0
     },
     "加德士": {
-      "retail": 37.83,
-      "after_discount": 35.83,
+      "retail": 38.23,
+      "after_discount": 36.23,
       "discount": 2.0
     }
   },
-  "avg_today": 32.57,
-  "avg_today_retail": 37.79,
+  "avg_today": 32.65,
+  "avg_today_retail": 37.87,
   "changes": {
     "中石化": {
       "prev": 0.28,
@@ -52,14 +52,14 @@
       "last_year": 6.27
     },
     "加德士": {
-      "prev": 0.56,
-      "year_start": 36.13,
-      "last_year": 39.04
+      "prev": 1.12,
+      "year_start": 37.65,
+      "last_year": 40.59
     },
     "__AVERAGE__": {
-      "prev": 0.06,
-      "year_start": 31.33,
-      "last_year": 34.31
+      "prev": 0.25,
+      "year_start": 31.65,
+      "last_year": 34.64
     },
     "__RETAIL__": {
       "中石化": {
@@ -83,14 +83,14 @@
         "last_year": 35.87
       },
       "加德士": {
-        "prev": 0.53,
-        "year_start": 33.58,
-        "last_year": 36.23
+        "prev": 1.06,
+        "year_start": 34.99,
+        "last_year": 37.67
       },
       "__AVERAGE__": {
-        "prev": 0.05,
-        "year_start": 33.44,
-        "last_year": 36.08
+        "prev": 0.21,
+        "year_start": 33.72,
+        "last_year": 36.37
       }
     }
   },
@@ -112,7 +112,7 @@
     "柴油": {
       "中石化": 37.73,
       "中國石油": 37.83,
-      "加德士": 37.83,
+      "加德士": 38.23,
       "埃索": 37.73,
       "蜆殼": 37.83
     }
