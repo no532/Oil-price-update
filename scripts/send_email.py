@@ -299,18 +299,17 @@ def fetch_international():
     for name, pts in (d.get("series") or {}).items():
         if not pts: continue
         
-        # ★ 1. 取今开 (Open)
         meta = (d.get("meta") or {}).get(name, {})
         open_price = meta.get("open")
         
-        # 如果今开为空，退而求其次取最新分时价
+        # 当前价：取今天的开盘价；如果没开盘，取最新分时价
         cur = open_price if open_price else pts[-1][1]
         
         rows.append({
             "name": name, 
-            "cur": cur,     # 这里的 cur 其实代表今天的开盘价
-            "open": open_price, 
-            "diff": None,   # 波动留给后面用日K算
+            "cur": cur,
+            "open": open_price,
+            "diff": None,
             "pct": None
         })
     return {"update_time": d.get("update_time", "—"), "rows": rows}
@@ -398,51 +397,34 @@ def check_vn_diesel_alert(cur_price, state, today):
     return None, None
 
 # ==================== 汇总表 ====================
-def build_summary(domestic, hk, intl, vn,
-                  prov_history, hk_history, vn_history, intl_history,
-                  calendar):
+def build_summary(domestic, hk, intl, vn, prov_history, hk_history, vn_history, intl_history, calendar):
     today = bj_now()
     rows = []
 
     # --- 国内柴油 ---
-    # --- 国内柴油 ---
     if domestic and domestic["avg_p0"] is not None:
         avg = domestic["avg_p0"]
-        
         d0_vals = [r["d0"] for r in domestic["rows"] if r["d0"] is not None]
         avg_d0 = sum(d0_vals) / len(d0_vals) if d0_vals else 0
         
         diff = round2(avg_d0)
         pct = round2(diff / (avg - diff) * 100) if avg and diff else 0.0
         
-        # ★ 核心修改：找“上一个”调价日
         last_date_str = "—"
         past_dates = [d for d in calendar if d.date() <= today.date()]
-        # 如果今天是在调价日（10/16）之后，past_dates 最后一个就是 10/16，倒数第二个就是 9/25
         if len(past_dates) >= 2:
             last_date_str = past_dates[-2].strftime('%Y-%m-%d')
         elif len(past_dates) == 1:
             last_date_str = past_dates[-1].strftime('%Y-%m-%d')
             
-        # 下次调整日期（保持不变）
         next_d = next_adjust_date(calendar, today)
         if next_d:
             days = (next_d.date() - today.date()).days
-            if days == 0:
-                next_str = f"<b style='color:#e74c3c;'>今天调整</b>"
-            else:
-                next_str = f"{next_d.strftime('%Y-%m-%d')}（还有 {days} 天）"
+            next_str = f"<b style='color:#e74c3c;'>今天调整</b>" if days == 0 else f"{next_d.strftime('%Y-%m-%d')}（还有 {days} 天）"
         else:
             next_str = "—"
 
-        rows.append({
-            "label": "国内柴油（31 省平均）",
-            "value": f"{fmt_num(avg)}<span class='u'>元/升</span>",
-            "last_date": last_date_str,
-            "diff": diff,
-            "pct": pct,
-            "next": next_str,
-        })
+        rows.append({"label": "国内柴油（31 省平均）", "value": f"{fmt_num(avg)}<span class='u'>元/升</span>", "last_date": last_date_str, "diff": diff, "pct": pct, "next": next_str})
 
     # --- 香港柴油 ---
     if hk:
@@ -455,43 +437,32 @@ def build_summary(domestic, hk, intl, vn,
                     diff = cur - last_price
                     pct = diff / last_price * 100 if last_price else None
                     last_date_str = last_date.strftime('%Y-%m-%d')
-                rows.append({
-                    "label": "香港柴油（平均零售价）",
-                    "value": f"{fmt_num(cur)}<span class='u'>HKD/升</span>",
-                    "last_date": last_date_str,
-                    "diff": diff,
-                    "pct": pct,
-                    "next": "—",
-                })
+                rows.append({"label": "香港柴油（平均零售价）", "value": f"{fmt_num(cur)}<span class='u'>HKD/升</span>", "last_date": last_date_str, "diff": diff, "pct": pct, "next": "—"})
                 break
 
     # --- 国际 WTI / 布伦特 ---
-    # --- 国际 WTI / 布伦特 ---
     if intl:
         for r in intl["rows"]:
-            cur = r["cur"]
+            cur = r["cur"]  # 今日开盘价
             hist = intl_history.get(r["name"], [])
             
-            # ★ 2. 从日K(oil_monthly)里找昨天的收盘价
+            # 从日K找昨收
             prev_close = hist[0][1] if hist and len(hist) > 0 else None
+            prev_date_str = hist[0][0].strftime('%Y-%m-%d') if hist else "—"
             
             diff = None
             pct = None
-            last_date_str = "—"
-            
             if prev_close:
                 diff = cur - prev_close
                 pct = (diff / prev_close) * 100 if prev_close else 0.0
-                # 获取昨天日K的日期
-                last_date_str = hist[0][0].strftime('%Y-%m-%d')
                 
             rows.append({
-                "label": r["name"],
-                "value": f"{fmt_num(cur)}<span class='u'>美元/桶</span>",
-                "last_date": last_date_str,
-                "diff": diff,
-                "pct": pct,
-                "next": "—",
+                "label": r["name"], 
+                "value": f"{fmt_num(cur)}<span class='u'>美元/桶</span>", 
+                "last_date": prev_date_str, 
+                "diff": diff, 
+                "pct": pct, 
+                "next": "—"
             })
 
     # --- 越南柴油 05S ---
@@ -505,31 +476,20 @@ def build_summary(domestic, hk, intl, vn,
                     diff = cur - last_price
                     pct = diff / last_price * 100 if last_price else None
                     last_date_str = last_date.strftime('%Y-%m-%d')
-                rows.append({
-                    "label": "越南柴油 0.05S（区域 1）",
-                    "value": f"{fmt_int(cur)}<span class='u'>VND/升</span>",
-                    "last_date": last_date_str,
-                    "diff": diff,
-                    "pct": pct,
-                    "next": "—",
-                })
+                rows.append({"label": "越南柴油 0.05S（区域 1）", "value": f"{fmt_int(cur)}<span class='u'>VND/升</span>", "last_date": last_date_str, "diff": diff, "pct": pct, "next": "—"})
                 break
 
     # 拼 HTML 表格
     html = """
-    <div style="background:#fff8f7;border:1px solid #f5d0cc;border-radius:8px;
-                padding:16px 20px;margin-bottom:20px;">
+    <div style="background:#fff8f7;border:1px solid #f5d0cc;border-radius:8px;padding:16px 20px;margin-bottom:20px;">
       <h3 style="color:#c9302c;margin:0 0 12px;font-size:16px;">📊 今日汇总</h3>
       <table style="width:100%;border-collapse:collapse;font-size:13px;">
-        <thead>
-          <tr style="background:#fbeae8;">
-            <th style="padding:8px 10px;text-align:left;color:#c9302c;font-weight:600;border-bottom:1px solid #f0d0cc;">品种</th>
-            <th style="padding:8px 10px;text-align:right;color:#c9302c;font-weight:600;border-bottom:1px solid #f0d0cc;">当前价</th>
-            <th style="padding:8px 10px;text-align:center;color:#c9302c;font-weight:600;border-bottom:1px solid #f0d0cc;">较上次</th>
-            <th style="padding:8px 10px;text-align:center;color:#c9302c;font-weight:600;border-bottom:1px solid #f0d0cc;">下次调整</th>
-          </tr>
-        </thead>
-        <tbody>
+        <thead><tr style="background:#fbeae8;">
+          <th style="padding:8px 10px;text-align:left;color:#c9302c;font-weight:600;border-bottom:1px solid #f0d0cc;">品种</th>
+          <th style="padding:8px 10px;text-align:right;color:#c9302c;font-weight:600;border-bottom:1px solid #f0d0cc;">当前价</th>
+          <th style="padding:8px 10px;text-align:center;color:#c9302c;font-weight:600;border-bottom:1px solid #f0d0cc;">较上次</th>
+          <th style="padding:8px 10px;text-align:center;color:#c9302c;font-weight:600;border-bottom:1px solid #f0d0cc;">下次调整</th>
+        </tr></thead><tbody>
     """
 
     for r in rows:
@@ -537,18 +497,11 @@ def build_summary(domestic, hk, intl, vn,
             c = color_of(r["diff"])
             sign = "+" if r["diff"] > 0 else ""
             diff_str = (
-                f"<div style='color:{c};font-weight:600;'>"
-                f"{sign}{fmt_num(r['diff'])}（{sign}{r['pct']:.2f}%）"
-                f"</div>"
-                f"<div style='color:#8492a6;font-size:11px;margin-top:2px;'>"
-                f"较 {r['last_date']}"
-                f"</div>"
+                f"<div style='color:{c};font-weight:600;'>{sign}{fmt_num(r['diff'])}（{sign}{r['pct']:.2f}%）</div>"
+                f"<div style='color:#8492a6;font-size:11px;margin-top:2px;'>较 {r['last_date']}</div>"
             )
         else:
-            diff_str = (
-                f"<div style='color:#8492a6;'>—</div>"
-                f"<div style='color:#8492a6;font-size:11px;margin-top:2px;'>较 —</div>"
-            )
+            diff_str = f"<div style='color:#8492a6;'>—</div><div style='color:#8492a6;font-size:11px;margin-top:2px;'>较 —</div>"
 
         html += f"""
         <tr>
@@ -559,14 +512,7 @@ def build_summary(domestic, hk, intl, vn,
         </tr>
         """
 
-    html += """
-        </tbody>
-      </table>
-      <style>
-        .u { font-size:11px; color:#8492a6; font-weight:400; margin-left:2px; }
-      </style>
-    </div>
-    """
+    html += """</tbody></table><style>.u { font-size:11px; color:#8492a6; font-weight:400; margin-left:2px; }</style></div>"""
     return html
 
 # ==================== 预警横幅 ====================
