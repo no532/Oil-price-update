@@ -284,9 +284,7 @@ def build_summary(domestic, hk, vn, prov_history, hk_history, vn_history, calend
                     last_change_date = change_dates[0] if change_dates else last_date
                     if last_change_date:
                         next_date = last_change_date + timedelta(days=int(round(avg_days)))
-                        days_left = (next_date.date() - today.date()).days
-                        if days_left >= 0:
-                            next_str = f"约 {next_date.strftime('%Y-%m-%d')}（还有 {days_left} 天）"
+                        next_str = f"{next_date.strftime('%Y-%m-%d')}（预测）"
                 
                 rows.append({"label": "香港柴油（平均零售价）", "value": f"{fmt_num(cur)}<span class='u'>HKD/升</span>", "last_date": last_date_str, "diff": diff, "pct": pct, "next": next_str})
                 break
@@ -319,11 +317,7 @@ def build_summary(domestic, hk, vn, prov_history, hk_history, vn_history, calend
                     last_change_date = change_dates[0] if change_dates else last_date
                     if last_change_date:
                         next_date = last_change_date + timedelta(days=int(round(avg_days)))
-                        days_left = (next_date.date() - today.date()).days
-                        if days_left >= 0:
-                            next_str = f"{next_date.strftime('%Y-%m-%d')}（还有 {days_left} 天）"
-                        else:
-                            next_str = "近期已调整"
+                        next_str = f"{next_date.strftime('%Y-%m-%d')}（预测）"
                             
                 rows.append({"label": "越南柴油 0.05S（区域 1）", "value": f"{fmt_int(cur)}<span class='u'>VND/升</span>", "last_date": last_date_str, "diff": diff, "pct": pct, "next": next_str})
                 break
