@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 每日油价推送 + 预警
-1. 汇总表：去掉国际原油，国内/香港/越南显示下次调整估算
-2. 预警：越南柴油破 25000 + 香港柴油破 37 HKD
+1. 汇总表：去掉国际原油，国内/香港/越南显示下次调整推算
+2. 预警：越南破 25000 + 香港破 37 HKD
 """
 
 import os
@@ -169,13 +169,13 @@ def load_intl_monthly():
         result[name] = rows
     return result
 
+# ==================== 抓取 ====================
 def fetch_domestic():
     d = load_json(f"{BASE_URL}/国内/data.json", os.path.join(LOCAL_BASE, "国内", "data.json"))
     if not d: return None
     
     rows = []
     for k, v in d.items():
-        # 安全检查：必须是列表，且长度大于 0，且第一项必须是字典
         if not isinstance(v, list) or len(v) == 0:
             continue
         latest = v[0]
@@ -193,8 +193,7 @@ def fetch_domestic():
         
     rows.sort(key=lambda x: x["province"])
     p0_vals = [r["p0"] for r in rows if r["p0"] is not None]
-    avg_p0 = sum(p0_vals)/len(p0_vals) if p0_vals else None
-    return {"rows": rows, "avg_p0": avg_p0}
+    return {"rows": rows, "avg_p0": sum(p0_vals)/len(p0_vals) if p0_vals else None}
 
 def fetch_hongkong():
     d = load_json(f"{BASE_URL}/香港/hk_fuel.json", os.path.join(LOCAL_BASE, "香港", "hk_fuel.json"))
@@ -223,39 +222,15 @@ def fetch_vietnam():
     order = ["DO005S_M2","DO001S_M5","E10RON95_M5","E10RON95_M3","E5RON92_M2","Kero2K"]
     return {"date": d.get("date", "—"), "update_time": d.get("update_time", "—"), "rows": [{"prefix": k, "name": d.get("fuel_names", {}).get(k, k), "z1": d.get("prices", {}).get(k, {}).get("Z1"), "z2": d.get("prices", {}).get(k, {}).get("Z2")} for k in order if d.get("prices", {}).get(k)]}
 
-# ==================== 预警与估算 ====================
-def estimate_hk_next_date(hk_history):
-    """根据历史记录估算香港下次调价日期"""
-    if not hk_history or len(hk_history) < 2: return "—"
-    # 取最近 30 次价格变动的间隔天数
-    change_dates = []
-    last_p = hk_history[0][1]
-    for d, p in hk_history:
-        if abs(p - last_p) > 0.01:
-            change_dates.append(d)
-            last_p = p
-            if len(change_dates) >= 30: break
-    if len(change_dates) < 2: return "—"
-    
-    # 计算平均间隔
-    intervals = [(change_dates[i] - change_dates[i+1]).days for i in range(len(change_dates)-1)]
-    avg_days = sum(intervals) / len(intervals) if intervals else 7
-    last_change = change_dates[0]
-    
-    # 估算下一次
-    next_date = last_change + timedelta(days=int(round(avg_days)))
-    return f"约 {next_date.strftime('%Y-%m-%d')}（推算）"
-
+# ==================== 预警与日期估算 ====================
 def check_alerts(cur_vn, cur_hk, state, today):
     alerts = []
-    # 1. 越南预警
     if cur_vn is not None:
         vn_below = cur_vn < VN_DIESEL_THRESHOLD
         vn_was_below = state.get("vn_below", False)
         if vn_below and not vn_was_below: alerts.append("trigger_vn")
         if not vn_below and vn_was_below: alerts.append("recover_vn")
     
-    # 2. 香港预警 (仅在下跌破37、或上涨破37时)
     if cur_hk is not None:
         hk_below = cur_hk < HK_DIESEL_THRESHOLD
         hk_was_below = state.get("hk_below", False)
@@ -290,7 +265,29 @@ def build_summary(domestic, hk, vn, prov_history, hk_history, vn_history, calend
                     if abs(p - cur) > 0.01: last_date, last_price = d, p; break
                 diff = cur - last_price if last_date else None; pct = diff / last_price * 100 if diff is not None else None
                 last_date_str = last_date.strftime('%Y-%m-%d') if last_date else "—"
-                next_str = estimate_hk_next_date(hk_history)
+                
+                # 推算香港下次调整
+                next_str = "—"
+                if hk_history and len(hk_history) >= 2:
+                    change_dates = []
+                    last_p = hk_history[0][1]
+                    for d, p in hk_history:
+                        if abs(p - last_p) > 0.01:
+                            change_dates.append(d)
+                            last_p = p
+                            if len(change_dates) >= 5: break
+                    if len(change_dates) >= 2:
+                        intervals = [(change_dates[i] - change_dates[i+1]).days for i in range(len(change_dates)-1)]
+                        avg_days = sum(intervals) / len(intervals)
+                    else:
+                        avg_days = 7
+                    last_change_date = change_dates[0] if change_dates else last_date
+                    if last_change_date:
+                        next_date = last_change_date + timedelta(days=int(round(avg_days)))
+                        days_left = (next_date.date() - today.date()).days
+                        if days_left >= 0:
+                            next_str = f"约 {next_date.strftime('%Y-%m-%d')}（还有 {days_left} 天）"
+                
                 rows.append({"label": "香港柴油（平均零售价）", "value": f"{fmt_num(cur)}<span class='u'>HKD/升</span>", "last_date": last_date_str, "diff": diff, "pct": pct, "next": next_str})
                 break
 
@@ -303,7 +300,31 @@ def build_summary(domestic, hk, vn, prov_history, hk_history, vn_history, calend
                     if abs(p - cur) > 0.01: last_date, last_price = d, p; break
                 diff = cur - last_price if last_date else None; pct = diff / last_price * 100 if diff is not None else None
                 last_date_str = last_date.strftime('%Y-%m-%d') if last_date else "—"
-                next_str = "每 7 天调价" # 越南通常7天调一次
+                
+                # 推算越南下次调整
+                next_str = "—"
+                if vn_history and len(vn_history) >= 2:
+                    change_dates = []
+                    last_p = vn_history[0][1]
+                    for d, p in vn_history:
+                        if abs(p - last_p) > 0.01:
+                            change_dates.append(d)
+                            last_p = p
+                            if len(change_dates) >= 5: break
+                    if len(change_dates) >= 2:
+                        intervals = [(change_dates[i] - change_dates[i+1]).days for i in range(len(change_dates)-1)]
+                        avg_days = sum(intervals) / len(intervals)
+                    else:
+                        avg_days = 7
+                    last_change_date = change_dates[0] if change_dates else last_date
+                    if last_change_date:
+                        next_date = last_change_date + timedelta(days=int(round(avg_days)))
+                        days_left = (next_date.date() - today.date()).days
+                        if days_left >= 0:
+                            next_str = f"{next_date.strftime('%Y-%m-%d')}（还有 {days_left} 天）"
+                        else:
+                            next_str = "近期已调整"
+                            
                 rows.append({"label": "越南柴油 0.05S（区域 1）", "value": f"{fmt_int(cur)}<span class='u'>VND/升</span>", "last_date": last_date_str, "diff": diff, "pct": pct, "next": next_str})
                 break
 
