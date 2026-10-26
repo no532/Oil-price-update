@@ -172,10 +172,29 @@ def load_intl_monthly():
 def fetch_domestic():
     d = load_json(f"{BASE_URL}/国内/data.json", os.path.join(LOCAL_BASE, "国内", "data.json"))
     if not d: return None
-    rows = [{"province": k, "date": v[0].get("date", "—"), "p92": v[0].get("92号汽油"), "p95": v[0].get("95号汽油"), "p0": v[0].get("0号柴油"), "d0": v[0].get("0号柴油_diff")} for k, v in d.items() if v]
+    
+    rows = []
+    for k, v in d.items():
+        # 安全检查：必须是列表，且长度大于 0，且第一项必须是字典
+        if not isinstance(v, list) or len(v) == 0:
+            continue
+        latest = v[0]
+        if not isinstance(latest, dict):
+            continue
+            
+        rows.append({
+            "province": k, 
+            "date": latest.get("date", "—"), 
+            "p92": latest.get("92号汽油"), 
+            "p95": latest.get("95号汽油"), 
+            "p0": latest.get("0号柴油"), 
+            "d0": latest.get("0号柴油_diff")
+        })
+        
     rows.sort(key=lambda x: x["province"])
     p0_vals = [r["p0"] for r in rows if r["p0"] is not None]
-    return {"rows": rows, "avg_p0": sum(p0_vals)/len(p0_vals) if p0_vals else None}
+    avg_p0 = sum(p0_vals)/len(p0_vals) if p0_vals else None
+    return {"rows": rows, "avg_p0": avg_p0}
 
 def fetch_hongkong():
     d = load_json(f"{BASE_URL}/香港/hk_fuel.json", os.path.join(LOCAL_BASE, "香港", "hk_fuel.json"))
