@@ -1,5 +1,7 @@
 {
-  "vn_diesel_below_threshold": false,
+  "vn_below": false,
+  "hk_below": false,
   "last_alert_date": null,
+  "vn_diesel_below_threshold": false,
   "threshold": 25000
 }
