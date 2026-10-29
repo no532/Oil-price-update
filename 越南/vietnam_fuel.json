@@ -1,71 +1,71 @@
 {
-  "update_time": "2026-10-29 10:44:47",
+  "update_time": "2026-10-29 17:43:03",
   "date": "2026/10/29",
   "prices": {
     "E10RON95_M5": {
-      "Z1": 25710,
-      "Z2": 26220,
-      "Avg": 25965.0
+      "Z1": 26530,
+      "Z2": 27060,
+      "Avg": 26795.0
     },
     "E10RON95_M3": {
-      "Z1": 24910,
-      "Z2": 25400,
-      "Avg": 25155.0
+      "Z1": 25730,
+      "Z2": 26240,
+      "Avg": 25985.0
     },
     "E5RON92_M2": {
-      "Z1": 25060,
-      "Z2": 25560,
-      "Avg": 25310.0
+      "Z1": 26020,
+      "Z2": 26540,
+      "Avg": 26280.0
     },
     "DO001S_M5": {
+      "Z1": 31640,
+      "Z2": 32270,
+      "Avg": 31955.0
+    },
+    "DO005S_M2": {
+      "Z1": 30240,
+      "Z2": 30840,
+      "Avg": 30540.0
+    },
+    "Kero2K": {
       "Z1": 30650,
       "Z2": 31260,
       "Avg": 30955.0
-    },
-    "DO005S_M2": {
-      "Z1": 29250,
-      "Z2": 29830,
-      "Avg": 29540.0
-    },
-    "Kero2K": {
-      "Z1": 30050,
-      "Z2": 30650,
-      "Avg": 30350.0
     }
   },
   "changes": {
     "E10RON95_M5": {
-      "prev": -6.58,
+      "prev": 3.2,
       "year_start": null,
       "last_year": null
     },
     "E10RON95_M3": {
-      "prev": -6.78,
+      "prev": 3.3,
       "year_start": null,
       "last_year": null
     },
     "E5RON92_M2": {
-      "prev": -6.03,
+      "prev": 3.83,
       "year_start": null,
       "last_year": null
     },
     "DO001S_M5": {
-      "prev": 1.49,
+      "prev": 3.23,
       "year_start": null,
       "last_year": null
     },
     "DO005S_M2": {
-      "prev": 1.56,
+      "prev": 3.39,
       "year_start": null,
       "last_year": null
     },
     "Kero2K": {
-      "prev": -1.17,
+      "prev": 1.99,
       "year_start": null,
       "last_year": null
     },
     "__AVERAGE__": {
-      "prev": -2.75,
+      "prev": 3.13,
       "year_start": null,
       "last_year": null
     }
