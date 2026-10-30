@@ -92,11 +92,50 @@
   @media (max-width:900px) { .overview-grid { grid-template-columns:repeat(2,1fr); } }
   @media (max-width:480px) { .overview-grid { grid-template-columns:1fr; } }
 
+  /* 对比表格卡片 */
+  .compare-card { background:#fff; border-radius:12px; padding:20px 24px;
+    box-shadow:0 2px 12px rgba(0,0,0,.06); margin-bottom:24px; }
+  .compare-title { font-size:16px; font-weight:700; margin:0 0 16px;
+    border-left:4px solid #c9302c; padding-left:10px;
+    display:flex; justify-content:space-between; align-items:center; }
+  .compare-title .note { font-size:12px; color:#8492a6; font-weight:400; }
+  .compare-table-wrap { overflow-x:auto; }
+  .compare-table { width:100%; border-collapse:separate; border-spacing:0;
+    background:#fff; border-radius:8px; overflow:hidden;
+    box-shadow:0 1px 6px rgba(0,0,0,.05); font-size:13px; }
+  .compare-table thead th { background:#f5f7fa; color:#1f2d3d;
+    font-weight:600; padding:10px 12px; text-align:center;
+    border-bottom:1px solid #e4e7ed; white-space:nowrap; }
+  .compare-table thead th:first-child { text-align:left; }
+  .compare-table tbody td { padding:12px 12px; text-align:center;
+    border-bottom:1px solid #f0f2f5; vertical-align:middle; }
+  .compare-table tbody td:first-child { text-align:left; font-weight:600; color:#1f2d3d; }
+  .compare-table tbody tr:last-child td { border-bottom:none; }
+  .compare-table tbody tr:hover { background:#fafbfc; }
+  .compare-table .up   { color:#e74c3c; }
+  .compare-table .down { color:#27ae60; }
+  .compare-table .flat { color:#b0b8c1; }
+  .compare-table .fuel-cell { font-weight:600; color:#1f2d3d; white-space:nowrap; }
+  /* 合并后的双行显示 */
+  .compare-table .cell-val { font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .compare-table .cell-rate { font-size:11px; margin-top:2px; font-variant-numeric:tabular-nums; }
+
   /* 选择面板 */
   .selector-panel {
     background:#fff; border-radius:12px; padding:18px 20px;
     box-shadow:0 2px 12px rgba(0,0,0,.06); margin-bottom:24px;
+    display: none; /* 默认收起 */
   }
+  .selector-panel.active { display: block; }
+  
+  .toggle-bar { margin-bottom:24px; text-align:center; }
+  .toggle-bar button {
+    padding:10px 28px; font-size:14px; border-radius:20px;
+    background:#fff; color:#409eff; border:1px solid #409eff;
+    font-weight:600; cursor:pointer; transition:.15s;
+  }
+  .toggle-bar button:hover { background:#ecf5ff; }
+
   .selector-label {
     font-size:13px; color:#8492a6; margin:0 0 8px 2px;
     display:flex; align-items:center; gap:6px;
@@ -142,7 +181,8 @@
   .hint { font-size:13px; color:#8492a6; margin-left:auto; }
   .hint.warn { color:#d97706; font-weight:600; }
 
-  /* 表格 */
+  /* 查询结果表格 */
+  #result { margin-bottom:24px; } /* 与下方的图表分开 */
   table { width:100%; border-collapse:separate; border-spacing:0;
     background:#fff; border-radius:12px; overflow:hidden;
     box-shadow:0 2px 12px rgba(0,0,0,.06); }
@@ -169,7 +209,7 @@
     margin-left:6px; vertical-align:middle; }
 
   /* 历史按钮 */
-  .history-bar { margin-top:24px; text-align:center; }
+  .history-bar { margin-bottom:24px; text-align:center; }
   .history-bar button {
     padding:11px 28px; font-size:15px;
     background:#fff; color:#c9302c; border:1px solid #c9302c;
@@ -180,38 +220,12 @@
 
   /* 走势图 */
   .chart-card { background:#fff; border-radius:12px; padding:20px 24px;
-    box-shadow:0 2px 12px rgba(0,0,0,.06); margin-top:24px; }
+    box-shadow:0 2px 12px rgba(0,0,0,.06); margin-bottom:24px; }
   .chart-title { font-size:16px; font-weight:700; margin:0 0 14px;
     border-left:4px solid #c9302c; padding-left:10px;
     display:flex; justify-content:space-between; align-items:center; }
   .chart-title .range { font-size:12px; color:#8492a6; font-weight:400; }
   #chart { width:100%; height:420px; }
-
-  /* 对比表格卡片 */
-  .compare-card { background:#fff; border-radius:12px; padding:20px 24px;
-    box-shadow:0 2px 12px rgba(0,0,0,.06); margin-top:24px; }
-  .compare-title { font-size:16px; font-weight:700; margin:0 0 16px;
-    border-left:4px solid #c9302c; padding-left:10px;
-    display:flex; justify-content:space-between; align-items:center; }
-  .compare-title .note { font-size:12px; color:#8492a6; font-weight:400; }
-  .compare-table-wrap { overflow-x:auto; }
-  .compare-table { width:100%; border-collapse:separate; border-spacing:0;
-    background:#fff; border-radius:8px; overflow:hidden;
-    box-shadow:0 1px 6px rgba(0,0,0,.05); font-size:13px; }
-  .compare-table thead th { background:#f5f7fa; color:#1f2d3d;
-    font-weight:600; padding:10px 12px; text-align:center;
-    border-bottom:1px solid #e4e7ed; white-space:nowrap; }
-  .compare-table thead th:first-child { text-align:left; }
-  .compare-table tbody td { padding:10px 12px; text-align:center;
-    border-bottom:1px solid #f0f2f5; font-variant-numeric:tabular-nums; }
-  .compare-table tbody td:first-child { text-align:left; font-weight:600; color:#1f2d3d; }
-  .compare-table tbody tr:last-child td { border-bottom:none; }
-  .compare-table tbody tr:hover { background:#fafbfc; }
-  .compare-table .up   { color:#e74c3c; }
-  .compare-table .down { color:#27ae60; }
-  .compare-table .flat { color:#b0b8c1; }
-  .compare-table .fuel-cell { font-weight:600; color:#1f2d3d; white-space:nowrap; }
-  .compare-table .val { font-weight:600; }
 </style>
 </head>
 <body>
@@ -252,19 +266,10 @@
     <div class="ov-time" id="ovTime"></div>
   </div>
 
-  <!-- 2. 全国油价走势图 -->
-  <div class="chart-card">
-    <div class="chart-title">
-      <span id="chartTitle">全国油价走势图</span>
-      <span class="range" id="chartRange"></span>
-    </div>
-    <div id="chart"></div>
-  </div>
-
-  <!-- 3. 今日油价对比表格 -->
+  <!-- 2. 今日油价对比表格 -->
   <div class="compare-card" id="compareCard">
     <div class="compare-title">
-      <span>今日油价波动对比（全国均价）</span>
+      <span id="compareTitleText">今日油价波动对比（全国均价）</span>
       <span class="note" id="compareNote">较上期 / 较今年1月 / 较去年同期</span>
     </div>
     <div class="compare-table-wrap">
@@ -272,24 +277,25 @@
         <thead>
           <tr>
             <th>油品</th>
-            <th>今日均价</th>
-            <th>较上期（元/升）</th>
-            <th>较上期波动率</th>
-            <th>较今年1月（元/升）</th>
-            <th>较今年1月波动率</th>
-            <th>较去年同期（元/升）</th>
-            <th>较去年同期波动率</th>
+            <th>当前均价</th>
+            <th>较上期</th>
+            <th>较今年1月</th>
+            <th>较去年同期</th>
           </tr>
         </thead>
         <tbody id="compareBody">
-          <tr><td colspan="8" style="text-align:center;color:#8492a6;">加载中...</td></tr>
+          <tr><td colspan="5" style="text-align:center;color:#8492a6;">加载中...</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- 4. 各省市油价查询面板 -->
-  <div class="selector-panel">
+  <!-- 3. 查询面板（默认收起，通过按钮展开） -->
+  <div class="toggle-bar">
+    <button id="toggleQueryBtn" onclick="toggleQueryPanel()">展开查询面板</button>
+  </div>
+
+  <div class="selector-panel" id="selectorPanel">
     <div class="selector-label">选择省份 / 直辖市</div>
     <div class="chip-row" id="provinceRow"></div>
 
@@ -302,10 +308,20 @@
     </div>
   </div>
 
+  <!-- 4. 查询结果表格（独立于面板之外） -->
   <div id="result"><div class="loading">加载中...</div></div>
 
   <div class="history-bar">
     <button id="historyBtn" onclick="toggleHistory()">查询历史油价</button>
+  </div>
+
+  <!-- 5. 走势图（放置在最底部） -->
+  <div class="chart-card">
+    <div class="chart-title">
+      <span id="chartTitle">全国油价走势图</span>
+      <span class="range" id="chartRange"></span>
+    </div>
+    <div id="chart"></div>
   </div>
 </div>
 
@@ -346,6 +362,21 @@ function avgOf(arr) {
   const v = arr.filter(x => x != null);
   if (!v.length) return null;
   return v.reduce((a,b)=>a+b,0) / v.length;
+}
+
+// ==================== 面板切换 ====================
+function toggleQueryPanel() {
+  const panel = document.getElementById("selectorPanel");
+  const btn = document.getElementById("toggleQueryBtn");
+  if (panel.classList.contains("active")) {
+    panel.classList.remove("active");
+    btn.textContent = "展开查询面板";
+  } else {
+    panel.classList.add("active");
+    btn.textContent = "收起查询面板";
+    // 展开时自动滚动到该位置，提升体验
+    panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 }
 
 // ==================== 省份 chip ====================
@@ -513,17 +544,21 @@ function renderOverview() {
   document.getElementById("overviewCard").style.display = "";
 }
 
-// ==================== 今日对比表格 ====================
+// ==================== 今日对比表格（联动省市与日期） ====================
 function renderCompareTable() {
-  const today = todayStr();
-  const year = today.slice(0,4);
+  const d = document.getElementById("date").value || todayStr();
+  const year = d.slice(0,4);
   const jan1 = `${year}-01-01`;
-  const lastYearToday = `${parseInt(year)-1}${today.slice(4)}`;
-
+  const lastYearDate = `${parseInt(year)-1}${d.slice(4)}`;
+  const p = currentProvince;
+  
   const tbody = document.getElementById("compareBody");
   if (!tbody) return;
 
-  const todayAvg = {}, prevAvg = {}, janAvg = {}, lastYearAvg = {};
+  const isNational = !p;
+  const scopeName = isNational ? "全国" : p;
+
+  const currAvg = {}, prevAvg = {}, janAvg = {}, lastYearAvg = {};
   let prevSum = {}, prevCnt = {};
   let janSum = {}, janCnt = {};
   let lySum = {}, lyCnt = {};
@@ -534,65 +569,97 @@ function renderCompareTable() {
     lySum[f] = 0; lyCnt[f] = 0;
   }
 
-  const todayRows = [];
-  for (const p of provinceList()) {
-    const row = findPrice(p, today);
-    if (row) todayRows.push(row);
-  }
-  for (const f of FUELS) {
-    const vals = todayRows.map(r => r[f]).filter(v => v != null);
-    todayAvg[f] = avgOf(vals);
-  }
+  if (!isNational) {
+    // 单省模式
+    const currRow = findPrice(p, d);
+    if (currRow) {
+      for (const f of FUELS) currAvg[f] = currRow[f];
+    }
 
-  for (const p of provinceList()) {
+    // 上期：该省在 d 之前再上一期
     const rows = DB[p] || [];
     let curIdx = -1;
     for (let i = 0; i < rows.length; i++) {
-      if (rows[i].date <= today) { curIdx = i; break; }
+      if (rows[i].date <= d) { curIdx = i; break; }
     }
-    if (curIdx === -1 || curIdx + 1 >= rows.length) continue;
-    const prevRow = rows[curIdx + 1];
+    if (curIdx !== -1 && curIdx + 1 < rows.length) {
+      const prevRow = rows[curIdx + 1];
+      for (const f of FUELS) prevAvg[f] = prevRow[f];
+    }
+
+    // 今年1月
+    const janRow = findPrice(p, jan1);
+    if (janRow) {
+      for (const f of FUELS) janAvg[f] = janRow[f];
+    }
+
+    // 去年同期
+    const lyRow = findPrice(p, lastYearDate);
+    if (lyRow) {
+      for (const f of FUELS) lastYearAvg[f] = lyRow[f];
+    }
+  } else {
+    // 全国模式
+    const todayRows = [];
+    for (const prov of provinceList()) {
+      const row = findPrice(prov, d);
+      if (row) todayRows.push(row);
+    }
     for (const f of FUELS) {
-      const v = prevRow[f];
-      if (v != null) { prevSum[f] += v; prevCnt[f]++; }
+      const vals = todayRows.map(r => r[f]).filter(v => v != null);
+      currAvg[f] = avgOf(vals);
     }
-  }
-  for (const f of FUELS) {
-    prevAvg[f] = prevCnt[f] > 0 ? prevSum[f] / prevCnt[f] : null;
-  }
 
-  for (const p of provinceList()) {
-    const row = findPrice(p, jan1);
-    if (row) {
+    for (const prov of provinceList()) {
+      const rows = DB[prov] || [];
+      let curIdx = -1;
+      for (let i = 0; i < rows.length; i++) {
+        if (rows[i].date <= d) { curIdx = i; break; }
+      }
+      if (curIdx === -1 || curIdx + 1 >= rows.length) continue;
+      const prevRow = rows[curIdx + 1];
       for (const f of FUELS) {
-        const v = row[f];
-        if (v != null) { janSum[f] += v; janCnt[f]++; }
+        const v = prevRow[f];
+        if (v != null) { prevSum[f] += v; prevCnt[f]++; }
       }
     }
-  }
-  for (const f of FUELS) {
-    janAvg[f] = janCnt[f] > 0 ? janSum[f] / janCnt[f] : null;
-  }
+    for (const f of FUELS) {
+      prevAvg[f] = prevCnt[f] > 0 ? prevSum[f] / prevCnt[f] : null;
+    }
 
-  for (const p of provinceList()) {
-    const row = findPrice(p, lastYearToday);
-    if (row) {
-      for (const f of FUELS) {
-        const v = row[f];
-        if (v != null) { lySum[f] += v; lyCnt[f]++; }
+    for (const prov of provinceList()) {
+      const row = findPrice(prov, jan1);
+      if (row) {
+        for (const f of FUELS) {
+          const v = row[f];
+          if (v != null) { janSum[f] += v; janCnt[f]++; }
+        }
       }
     }
-  }
-  for (const f of FUELS) {
-    lastYearAvg[f] = lyCnt[f] > 0 ? lySum[f] / lyCnt[f] : null;
+    for (const f of FUELS) {
+      janAvg[f] = janCnt[f] > 0 ? janSum[f] / janCnt[f] : null;
+    }
+
+    for (const prov of provinceList()) {
+      const row = findPrice(prov, lastYearDate);
+      if (row) {
+        for (const f of FUELS) {
+          const v = row[f];
+          if (v != null) { lySum[f] += v; lyCnt[f]++; }
+        }
+      }
+    }
+    for (const f of FUELS) {
+      lastYearAvg[f] = lyCnt[f] > 0 ? lySum[f] / lyCnt[f] : null;
+    }
   }
 
   let html = "";
   for (const f of FUELS) {
-    const t = todayAvg[f];
+    const t = currAvg[f];
     if (t == null) {
-      html += `<tr><td class="fuel-cell">${f}</td><td colspan="7" style="color:#c0c4cc;">暂无数据</td></tr>`;
-      continue;
+      html += `<tr><td class="fuel-cell">${f}</td><td colspan="4" style="color:#c0c4cc;">暂无数据</td></tr>`;
+           continue;
     }
 
     const p = prevAvg[f];
@@ -608,35 +675,42 @@ function renderCompareTable() {
     const diffLY = (l != null) ? t - l : null;
     const rateLY = (l != null && l !== 0) ? (diffLY / l) * 100 : null;
 
-    function fmtDiffCell(v) {
-      if (v == null) return `<td>—</td>`;
-      const cls = v > 0.005 ? 'up' : (v < -0.005 ? 'down' : 'flat');
-      const sign = v > 0.005 ? '+' : '';
-      return `<td class="${cls} val">${sign}${v.toFixed(2)}</td>`;
-    }
-    function fmtRateCell(v) {
-      if (v == null) return `<td>—</td>`;
-      const cls = v > 0.005 ? 'up' : (v < -0.005 ? 'down' : 'flat');
-      const sign = v > 0.005 ? '+' : '';
-      return `<td class="${cls} val">${sign}${v.toFixed(2)}%</td>`;
+    // 生成合并单元格的辅助函数
+    function fmtCell(diff, rate) {
+      if (diff == null && rate == null) return `<td>—</td>`;
+      let cls = 'flat';
+      let dTxt = '—';
+      let rTxt = '—';
+      
+      if (diff != null) {
+        cls = diff > 0.005 ? 'up' : (diff < -0.005 ? 'down' : 'flat');
+        dTxt = (diff > 0.005 ? '+' : '') + diff.toFixed(2);
+      }
+      if (rate != null) {
+        rTxt = (rate > 0.005 ? '+' : '') + rate.toFixed(2) + '%';
+      }
+      
+      return `<td class="${cls}">
+        <div class="cell-val">${dTxt}</div>
+        <div class="cell-rate">${rTxt}</div>
+      </td>`;
     }
 
     html += `<tr>
       <td class="fuel-cell">${f}</td>
       <td class="val">${t.toFixed(2)}</td>
-      ${fmtDiffCell(diffPrev)}
-      ${fmtRateCell(ratePrev)}
-      ${fmtDiffCell(diffJan)}
-      ${fmtRateCell(rateJan)}
-      ${fmtDiffCell(diffLY)}
-      ${fmtRateCell(rateLY)}
+      ${fmtCell(diffPrev, ratePrev)}
+      ${fmtCell(diffJan, rateJan)}
+      ${fmtCell(diffLY, rateLY)}
     </tr>`;
   }
   tbody.innerHTML = html;
 
+  // 动态更新标题和注释
+  document.getElementById("compareTitleText").textContent = `${scopeName}油价波动对比（${d}）`;
   const note = document.getElementById("compareNote");
   if (note) {
-    note.textContent = `今日(${today}) vs 上期 / ${year}-01-01 / ${lastYearToday}`;
+    note.textContent = `较上期 / ${year}-01-01 / ${lastYearDate}`;
   }
 }
 
@@ -729,6 +803,7 @@ function search() {
     hint.textContent = `全国 ${d} 的油价（沿用最近一次调整）`;
     render(list, "all");
   }
+  renderCompareTable(); // 联动更新对比表格
   renderChart();
 }
 
@@ -754,6 +829,7 @@ function toggleHistory() {
     hint.textContent = `全国全部历史数据（共 ${allRows.length} 条）`;
     render(allRows, "all");
   }
+  renderCompareTable();
   renderChart();
 }
 
@@ -809,6 +885,7 @@ function toggleHistoryKeepMode() {
     hint.textContent = `全国全部历史数据（共 ${allRows.length} 条）`;
     render(allRows, "all");
   }
+  renderCompareTable();
   renderChart();
 }
 
@@ -841,7 +918,7 @@ async function init() {
   renderProvinceChips();
   renderCountdown();
   renderOverview();
-  renderCompareTable();   // 新增：渲染今日对比表格
+  renderCompareTable();   // 初次加载渲染今日对比表格
   showToday();
 }
 
