@@ -32,7 +32,6 @@
   }
   .overview-grid {
     display:grid; grid-template-columns:repeat(4, 1fr); gap:14px;
-    margin-bottom:16px;
   }
   .ov-item {
     background:linear-gradient(180deg,#fdf0f0 0%,#fbe9e9 100%);
@@ -64,32 +63,7 @@
   .ov-change.down { color:#27ae60; }
   .ov-change.flat { color:#8492a6; }
 
-  .ticker-title { font-size:13px; color:#8492a6; margin:6px 0 10px; }
-  .ticker {
-    display:flex; flex-wrap:wrap; gap:10px;
-    border-top:1px solid #f0f2f5; padding-top:14px;
-  }
-  .ticker-item {
-    flex:1 1 0; min-width:140px;
-    background:#fafbfc; border-radius:8px;
-    padding:10px 14px;
-  }
-  .ticker-name { font-size:12px; color:#8492a6; margin-bottom:4px; }
-  .ticker-price {
-    font-size:18px; font-weight:700; font-variant-numeric:tabular-nums;
-    display:flex; align-items:baseline; gap:6px;
-  }
-  .ticker-diff { font-size:12px; font-weight:600; }
-  .ticker-diff.up   { color:#c62828; }
-  .ticker-diff.down { color:#1b7f4b; }
-  .ticker-diff.flat { color:#b0b8c1; }
-  /* 波动率：与波动值同口径，但只用中性灰，避免与涨跌色混淆 */
-  .ticker-vol { font-size:11px; margin-top:3px; font-variant-numeric:tabular-nums;
-    color:#5f6b7a; background:#eef1f4; border-radius:9px; padding:1px 7px;
-    display:inline-block; }
-  .ticker-vol.up, .ticker-vol.down { color:#5f6b7a; }
-  .ticker-vol.flat { color:#98a2b3; background:#f4f6f8; }
-  .ov-time { font-size:12px; color:#b0b8c1; margin-top:14px; }
+  .ov-time { margin-left:auto; font-size:12px; font-weight:400; color:#b0b8c1; }
 
   @media (max-width:900px) { .overview-grid { grid-template-columns:repeat(2,1fr); } }
   @media (max-width:480px) { .overview-grid { grid-template-columns:1fr; } }
@@ -315,7 +289,7 @@
 
   <!-- 全国油价概览 -->
   <div class="overview-card" id="overviewCard" style="display:none;">
-    <div class="overview-title">全国油价概览</div>
+    <div class="overview-title">全国油价概览<span class="ov-time" id="ovTime"></span></div>
     <div class="overview-grid">
       <div class="ov-item">
         <div class="ov-label"><span class="dot up"></span>0号柴油 · 最高</div>
@@ -338,9 +312,6 @@
         <div class="ov-change" id="ovChangeText">--</div>
       </div>
     </div>
-    <div class="ticker-title">各油品全国均价（各省平均 · 右侧为较上期涨跌 · 下方为波动率）</div>
-    <div class="ticker" id="ticker"></div>
-    <div class="ov-time" id="ovTime"></div>
   </div>
 
   <!-- ===== 全国油价查询（查询条件 + 均价波动 + 明细 + 走势） ===== -->
@@ -771,51 +742,7 @@ function renderOverview() {
     }
   }
 
-  const ticker = document.getElementById("ticker");
-  ticker.innerHTML = "";
-  for (const f of FUELS) {
-    const avgNow = avgOf(items.map(it => it.row[f]));
-    let s2 = 0, c2 = 0;
-    for (const p of provinceList()) {
-      const rows = DB[p] || [];
-      let curIdx = -1;
-      for (let i = 0; i < rows.length; i++) {
-        if (rows[i].date <= today) { curIdx = i; break; }
-      }
-      if (curIdx === -1) continue;
-      if (curIdx + 1 < rows.length) {
-        const v = rows[curIdx + 1][f];
-        if (v != null) { s2 += v; c2++; }
-      }
-    }
-    const avgPrev = c2 > 0 ? s2 / c2 : null;
-    let d = (avgNow != null && avgPrev != null) ? avgNow - avgPrev : null;
-    let diffCls = "flat", diffTxt = "—";
-    if (d != null) {
-      if (Math.abs(d) < 0.005) { diffCls = "flat"; diffTxt = "0.00"; }
-      else if (d > 0) { diffCls = "up"; diffTxt = "+" + d.toFixed(2); }
-      else { diffCls = "down"; diffTxt = d.toFixed(2); }
-    }
-    let volCls = "flat", volTxt = "—";
-    if (d != null && avgPrev != null && avgPrev !== 0) {
-      const vol = (d / avgPrev) * 100;
-      if (Math.abs(vol) < 0.005) { volCls = "flat"; volTxt = "0.00%"; }
-      else if (vol > 0) { volCls = "up"; volTxt = "+" + vol.toFixed(2) + "%"; }
-      else { volCls = "down"; volTxt = vol.toFixed(2) + "%"; }
-    }
-    const div = document.createElement("div");
-    div.className = "ticker-item";
-    div.innerHTML = `
-      <div class="ticker-name">全国 · ${f}（均价）</div>
-      <div class="ticker-price">
-        ${avgNow == null ? "—" : avgNow.toFixed(2)}
-        <span class="ticker-diff ${diffCls}">${diffTxt}</span>
-      </div>
-      <div class="ticker-vol ${volCls}">波动率 ${volTxt}</div>`;
-    ticker.appendChild(div);
-  }
-
-  document.getElementById("ovTime").textContent = `更新时间：${items[0].row.date}`;
+  document.getElementById("ovTime").textContent = `更新 ${items[0].row.date}`;
   document.getElementById("overviewCard").style.display = "";
 }
 
