@@ -329,7 +329,7 @@ def build_summary(domestic, hk, vn, prov_history, hk_history, vn_history, calend
                         days_left = (next_date.date() - today.date()).days
                         next_str = f"{next_date.strftime('%Y-%m-%d')}（预测，还有 {days_left} 天）"
                             
-                rows.append({"label": "越南柴油 0.05S（区域 1）", "value": f"{fmt_int(cur)}<span class='u'>VND/升</span>", "last_date": last_date_str, "diff": diff, "pct": pct, "next": next_str})
+                rows.append({"label": "越南柴油 0.05S", "value": f"{fmt_int(cur)}<span class='u'>VND/升</span>", "last_date": last_date_str, "diff": diff, "pct": pct, "next": next_str})
                 break
 
     html = """<div style="background:#fff8f7;border:1px solid #f5d0cc;border-radius:8px;padding:16px 20px;margin-bottom:20px;"><h3 style="color:#c9302c;margin:0 0 12px;font-size:16px;">📊 今日汇总</h3><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#fbeae8;"><th style="padding:8px 10px;text-align:left;color:#c9302c;border-bottom:1px solid #f0d0cc;">品种</th><th style="padding:8px 10px;text-align:right;color:#c9302c;border-bottom:1px solid #f0d0cc;">当前价</th><th style="padding:8px 10px;text-align:center;color:#c9302c;border-bottom:1px solid #f0d0cc;">较上次</th><th style="padding:8px 10px;text-align:center;color:#c9302c;border-bottom:1px solid #f0d0cc;">下次调整</th></tr></thead><tbody>"""
