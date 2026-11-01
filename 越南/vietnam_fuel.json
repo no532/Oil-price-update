@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-11-02 02:16:14",
+  "update_time": "2026-11-02 05:54:51",
   "date": "2026/11/01",
   "prices": {
     "E10RON95_M5": {
@@ -28,9 +28,9 @@
       "Avg": 30540.0
     },
     "Kero2K": {
-      "Z1": 30650,
-      "Z2": 31260,
-      "Avg": 30955.0
+      "Z1": 29590,
+      "Z2": 30180,
+      "Avg": 29885.0
     }
   },
   "changes": {
@@ -60,12 +60,12 @@
       "last_year": null
     },
     "Kero2K": {
-      "prev": 1.99,
+      "prev": -3.46,
       "year_start": null,
       "last_year": null
     },
     "__AVERAGE__": {
-      "prev": -2.91,
+      "prev": -0.64,
       "year_start": null,
       "last_year": null
     }
