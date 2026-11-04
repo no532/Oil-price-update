@@ -1,6 +1,6 @@
 {
-  "update_time": "2026-11-04 06:15:43",
-  "date": "2026/11/03",
+  "update_time": "2026-11-04 10:37:43",
+  "date": "2026/11/04",
   "prices": {
     "E10RON95_M5": {
       "Z1": 24230,
@@ -60,7 +60,7 @@
       "last_year": null
     },
     "__AVERAGE__": {
-      "prev": -1.25,
+      "prev": 1.82,
       "year_start": null,
       "last_year": null
     }
