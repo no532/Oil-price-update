@@ -1,21 +1,21 @@
 {
-  "update_time": "2026-11-07 06:18:06",
-  "date": "2026/11/7",
+  "update_time": "2026-11-09 09:52:27",
+  "date": "2026/11/9",
   "diesel": {
     "埃索": {
       "retail": 37.53,
       "after_discount": 24.53,
       "discount": 13.0
     },
+    "蜆殼": {
+      "retail": 37.53,
+      "after_discount": 33.03,
+      "discount": 4.5
+    },
     "中國石油": {
       "retail": 37.73,
       "after_discount": 33.13,
       "discount": 4.6
-    },
-    "蜆殼": {
-      "retail": 37.93,
-      "after_discount": 33.43,
-      "discount": 4.5
     },
     "中石化": {
       "retail": 37.53,
@@ -28,8 +28,8 @@
       "discount": 2.0
     }
   },
-  "avg_today": 32.47,
-  "avg_today_retail": 37.69,
+  "avg_today": 32.39,
+  "avg_today_retail": 37.61,
   "changes": {
     "中石化": {
       "prev": -1.11,
@@ -42,9 +42,9 @@
       "last_year": 39.67
     },
     "蜆殼": {
-      "prev": -0.3,
-      "year_start": 40.34,
-      "last_year": 40.34
+      "prev": -1.2,
+      "year_start": 38.66,
+      "last_year": 38.66
     },
     "埃索": {
       "prev": -1.6,
@@ -57,9 +57,9 @@
       "last_year": 35.75
     },
     "__AVERAGE__": {
-      "prev": -0.49,
-      "year_start": 30.93,
-      "last_year": 30.93
+      "prev": -0.25,
+      "year_start": 30.6,
+      "last_year": 30.6
     },
     "__RETAIL__": {
       "中石化": {
@@ -73,9 +73,9 @@
         "last_year": 33.23
       },
       "蜆殼": {
-        "prev": -0.26,
-        "year_start": 33.93,
-        "last_year": 33.93
+        "prev": -1.05,
+        "year_start": 32.52,
+        "last_year": 32.52
       },
       "埃索": {
         "prev": -1.05,
@@ -88,9 +88,9 @@
         "last_year": 33.23
       },
       "__AVERAGE__": {
-        "prev": -0.42,
-        "year_start": 33.09,
-        "last_year": 33.09
+        "prev": -0.21,
+        "year_start": 32.8,
+        "last_year": 32.8
       }
     }
   },
@@ -104,7 +104,7 @@
     },
     "特級無鉛汽油": {
       "中石化": 36.52,
-      "中國石油": 34.72,
+      "中國石油": 36.52,
       "加德士": 36.52,
       "埃索": 36.52,
       "蜆殼": 36.52
@@ -114,7 +114,7 @@
       "中國石油": 37.73,
       "加德士": 37.73,
       "埃索": 37.53,
-      "蜆殼": 37.93
+      "蜆殼": 37.53
     }
   }
 }
